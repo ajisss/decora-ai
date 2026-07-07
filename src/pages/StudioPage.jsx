@@ -5,10 +5,10 @@ import { StepIcon } from '../components/icons.jsx'
 import ReferenceImageInput from '../components/generator/ReferenceImageInput.jsx'
 import ResultTile from '../components/generator/ResultTile.jsx'
 
-// Workspace ala "AI tool": sidebar ikon kiri, canvas besar di tengah,
-// bottom bar buat nulis prompt, panel kanan (Contoh/Riwayat). Tetap
-// tema terang konsisten dengan landing — cuma layout yang diadopsi
-// dari referensi tool AI generator.
+// Workspace ala "AI tool": sidebar ikon kiri, canvas jadi feed generate
+// (tiap generate nambah entry baru: timestamp + prompt + status/hasil),
+// bottom bar buat nulis prompt, panel kanan (Contoh/Riwayat). Tetap tema
+// terang konsisten dengan landing — cuma layout yang diadopsi.
 // Simulasi — belum ada AI riil, generate cuma menunda lalu render placeholder.
 export default function StudioPage() {
   const { state } = useLocation()
@@ -17,14 +17,16 @@ export default function StudioPage() {
 
   const [prompt, setPrompt] = useState(state?.prompt ?? '')
   const [reference, setReference] = useState(state?.reference ?? null)
-  const [status, setStatus] = useState('idle') // idle | loading | done
-  const [seed, setSeed] = useState(0)
-  const [lightbox, setLightbox] = useState(false)
+  const [entries, setEntries] = useState([]) // {id, prompt, timestamp, status, percent, seed}
+  const [lightboxSeed, setLightboxSeed] = useState(null)
   const [rightTab, setRightTab] = useState('explore') // explore | history
   const [mobilePanel, setMobilePanel] = useState(false)
-  const [history, setHistory] = useState([])
-  const timer = useRef(null)
-  const historyIdRef = useRef(0)
+  const nextId = useRef(0)
+  const nextSeed = useRef(0)
+  const percentTimer = useRef(null)
+  const doneTimer = useRef(null)
+
+  const isGenerating = entries.some((e) => e.status === 'loading')
 
   // Autorun saat halaman dibuka dari teaser. Timer dimiliki oleh efek ini
   // sendiri (bukan lewat ref bersama) supaya cleanup React StrictMode
@@ -37,25 +39,41 @@ export default function StudioPage() {
   }, [])
 
   useEffect(() => {
-    if (!lightbox) return
-    const onKey = (e) => e.key === 'Escape' && setLightbox(false)
+    if (lightboxSeed === null) return
+    const onKey = (e) => e.key === 'Escape' && setLightboxSeed(null)
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [lightbox])
+  }, [lightboxSeed])
 
-  useEffect(() => () => clearTimeout(timer.current), [])
+  useEffect(
+    () => () => {
+      clearInterval(percentTimer.current)
+      clearTimeout(doneTimer.current)
+    },
+    [],
+  )
 
   const runGenerate = (promptAtRun) => {
-    setStatus('loading')
-    clearTimeout(timer.current)
-    const t = setTimeout(() => {
-      const nextSeed = historyIdRef.current
-      historyIdRef.current += 1
-      setSeed(nextSeed)
-      setStatus('done')
-      setHistory((h) => [{ id: nextSeed, prompt: promptAtRun, seed: nextSeed }, ...h])
+    const id = nextId.current
+    nextId.current += 1
+    const entry = { id, prompt: promptAtRun, timestamp: new Date(), status: 'loading', percent: 0, seed: null }
+    setEntries((es) => [entry, ...es])
+
+    clearInterval(percentTimer.current)
+    clearTimeout(doneTimer.current)
+
+    percentTimer.current = setInterval(() => {
+      setEntries((es) =>
+        es.map((e) => (e.id === id && e.status === 'loading' ? { ...e, percent: Math.min(95, e.percent + 12) } : e)),
+      )
+    }, 150)
+
+    doneTimer.current = setTimeout(() => {
+      clearInterval(percentTimer.current)
+      const seed = nextSeed.current
+      nextSeed.current += 1
+      setEntries((es) => es.map((e) => (e.id === id ? { ...e, status: 'done', percent: 100, seed } : e)))
     }, 1300)
-    timer.current = t
   }
 
   const generate = () => runGenerate(prompt)
@@ -104,44 +122,29 @@ export default function StudioPage() {
           />
         </aside>
 
-        {/* Canvas + bottom bar */}
+        {/* Canvas (feed) + bottom bar */}
         <div className="flex min-h-0 flex-1 flex-col">
-          <main className="relative flex flex-1 items-center justify-center overflow-y-auto p-6">
-            {status === 'idle' && (
-              <div className="max-w-md text-center">
-                <h1 className="font-display text-2xl font-semibold leading-snug text-ink md:text-3xl">
-                  {s.canvasIdleTitle}
-                </h1>
-                <p className="mt-3 text-ink-muted">{s.canvasIdleHint}</p>
-              </div>
-            )}
-            {status === 'loading' && (
-              <div className="w-full max-w-sm">
-                <ResultTile loading seed={seed} />
-                <p className="mt-4 text-center text-sm font-medium text-ink-muted">{g.loading}</p>
-              </div>
-            )}
-            {status === 'done' && (
-              <div className="w-full max-w-sm">
-                <button
-                  type="button"
-                  onClick={() => setLightbox(true)}
-                  className="group relative block w-full overflow-hidden rounded-xl2 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
-                  aria-label="Perbesar hasil generate"
-                >
-                  <ResultTile seed={seed} />
-                  <span className="absolute inset-0 flex items-center justify-center bg-ink/0 transition-colors group-hover:bg-ink/25">
-                    <span className="flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-ink opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
-                      <StepIcon name="preview" className="h-3.5 w-3.5" /> Perbesar
-                    </span>
-                  </span>
-                </button>
-                <div className="mt-5 rounded-xl2 border border-clay/25 bg-clay-soft px-5 py-4 text-center">
-                  <p className="text-sm text-ink-soft">{g.resultHint}</p>
-                  <a href="#generator" className="btn-primary mt-4 w-full">
-                    {g.upgradeCta} <StepIcon name="arrow" className="h-4 w-4" />
-                  </a>
+          <main className="relative flex-1 overflow-y-auto p-6">
+            {entries.length === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="max-w-md text-center">
+                  <h1 className="font-display text-2xl font-semibold leading-snug text-ink md:text-3xl">
+                    {s.canvasIdleTitle}
+                  </h1>
+                  <p className="mt-3 text-ink-muted">{s.canvasIdleHint}</p>
                 </div>
+              </div>
+            ) : (
+              <div className="mx-auto max-w-xl">
+                {entries.map((entry, i) => (
+                  <FeedEntry
+                    key={entry.id}
+                    entry={entry}
+                    isLatest={i === 0}
+                    g={g}
+                    onOpenLightbox={setLightboxSeed}
+                  />
+                ))}
               </div>
             )}
           </main>
@@ -173,17 +176,17 @@ export default function StudioPage() {
                 <button
                   type="button"
                   onClick={generate}
-                  disabled={status === 'loading'}
+                  disabled={isGenerating}
                   className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {status === 'loading' ? (
+                  {isGenerating ? (
                     <>
                       <Spinner /> Meracik…
                     </>
                   ) : (
                     <>
                       <StepIcon name="spark" className="h-4 w-4" />
-                      {status === 'done' ? g.regenerate : g.button}
+                      {entries.length > 0 ? g.regenerate : g.button}
                     </>
                   )}
                 </button>
@@ -198,7 +201,7 @@ export default function StudioPage() {
           <RightPanel
             rightTab={rightTab}
             setRightTab={setRightTab}
-            history={history}
+            entries={entries}
             onUseExample={useExamplePrompt}
             s={s}
           />
@@ -221,7 +224,7 @@ export default function StudioPage() {
             <RightPanel
               rightTab={rightTab}
               setRightTab={setRightTab}
-              history={history}
+              entries={entries}
               onUseExample={useExamplePrompt}
               s={s}
             />
@@ -229,22 +232,22 @@ export default function StudioPage() {
         </div>
       )}
 
-      {lightbox && (
+      {lightboxSeed !== null && (
         <div
           role="dialog"
           aria-modal="true"
-          onClick={() => setLightbox(false)}
+          onClick={() => setLightboxSeed(null)}
           className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/70 p-6 backdrop-blur-sm"
         >
           <button
-            onClick={() => setLightbox(false)}
+            onClick={() => setLightboxSeed(null)}
             aria-label="Tutup"
             className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
           >
             <StepIcon name="close" className="h-5 w-5" />
           </button>
           <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <ResultTile seed={seed} />
+            <ResultTile seed={lightboxSeed} />
           </div>
         </div>
       )}
@@ -252,8 +255,54 @@ export default function StudioPage() {
   )
 }
 
-function RightPanel({ rightTab, setRightTab, history, onUseExample, s }) {
+function FeedEntry({ entry, isLatest, g, onOpenLightbox }) {
+  return (
+    <div className="border-b border-paper-line py-5 first:pt-0">
+      <p className="text-xs text-ink-muted">{formatTimestamp(entry.timestamp)}</p>
+      <p className="mt-1 text-[15px] font-medium text-ink">{entry.prompt || '(tanpa prompt)'}</p>
+
+      {entry.status === 'loading' ? (
+        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-paper-line bg-paper-soft px-3 py-1.5 text-xs font-medium text-ink-soft">
+          <Spinner /> Generating {entry.percent}%
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => onOpenLightbox(entry.seed)}
+            className="group relative mt-3 block w-48 overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
+            aria-label="Perbesar hasil generate"
+          >
+            <ResultTile seed={entry.seed} />
+            <span className="absolute inset-0 flex items-center justify-center bg-ink/0 transition-colors group-hover:bg-ink/25">
+              <span className="flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-ink opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+                <StepIcon name="preview" className="h-3 w-3" /> Perbesar
+              </span>
+            </span>
+          </button>
+
+          {isLatest && (
+            <div className="mt-4 max-w-md rounded-xl2 border border-clay/25 bg-clay-soft px-5 py-4">
+              <p className="text-sm text-ink-soft">{g.resultHint}</p>
+              <a href="#generator" className="btn-primary mt-3 w-full">
+                {g.upgradeCta} <StepIcon name="arrow" className="h-4 w-4" />
+              </a>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function formatTimestamp(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+function RightPanel({ rightTab, setRightTab, entries, onUseExample, s }) {
   const gallery = content.gallery
+  const done = entries.filter((e) => e.status === 'done')
   return (
     <>
       <div className="flex shrink-0 gap-1 border-b border-paper-line p-3">
@@ -289,11 +338,11 @@ function RightPanel({ rightTab, setRightTab, history, onUseExample, s }) {
 
         {rightTab === 'history' && (
           <>
-            {history.length === 0 ? (
+            {done.length === 0 ? (
               <p className="px-1 py-6 text-center text-sm text-ink-muted">{s.historyEmpty}</p>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                {history.map((h) => (
+                {done.map((h) => (
                   <div key={h.id} className="overflow-hidden rounded-lg border border-paper-line bg-white">
                     <ResultTile seed={h.seed} />
                     <span className="block truncate px-2 py-1.5 text-xs text-ink-soft" title={h.prompt}>

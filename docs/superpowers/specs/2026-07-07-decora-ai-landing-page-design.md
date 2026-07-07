@@ -130,3 +130,14 @@ Referensi: layout tool AI generator (sidebar ikon kiri, canvas besar tengah, bot
   - **Riwayat**: daftar hasil generate di sesi berjalan (state lokal `history`, tidak persisten), ditambah tiap kali generate selesai. Kosong → pesan `content.studio.historyEmpty`.
 - Komponen `EmptyState.jsx` dihapus (state idle sekarang ditulis langsung di `StudioPage` sebagai judul besar, bukan kotak kosong generik).
 - `ReferenceImageInput` mendapat prop `compact` — versi pill kecil (thumbnail bulat + tombol hapus ikon silang) untuk ditaruh di baris toolbar bottom bar, terpisah dari versi field penuh yang masih dipakai di `GeneratorTeaser`.
+
+## Amendemen — Canvas Jadi Feed Generate, Bukan Satu Box yang Ditimpa (2026-07-07)
+
+Referensi: tool AI generator yang menampilkan tiap generate sebagai entry baru (timestamp + prompt + status) di area canvas, bukan satu hasil yang tertimpa tiap kali generate ulang.
+
+- State `status`/`seed`/`history` tunggal diganti satu state `entries` (array `{id, prompt, timestamp, status, percent, seed}`). Tiap `generate()` (`runGenerate`) nge-*prepend* entry baru berstatus `loading`, bukan mengganti satu nilai.
+- **Progress simulasi**: `setInterval` menaikkan `percent` tiap 150ms (+12, dibatasi 95) selama entry `loading`, ditampilkan sebagai pill "Generating {percent}%" — meniru progress asli walau hasilnya tetap simulasi. Selesai di 1300ms lewat `setTimeout` terpisah yang men-set `status: 'done'`, `percent: 100`, dan `seed`.
+- **Canvas** (`<main>`) merender daftar `entries` (terbaru di atas) sebagai feed: tiap entry menampilkan timestamp (`formatTimestamp`), teks prompt, lalu status loading ATAU thumbnail hasil (klik → lightbox). Kartu CTA "Sempurnakan dengan tim" cuma nempel di entry **paling baru** (`isLatest`) yang sudah `done`, supaya tidak berulang di tiap entry lama.
+- State idle (`entries.length === 0`) tetap menampilkan judul besar + hint di tengah canvas, sama seperti sebelumnya.
+- Tombol Generate di bottom bar disable selama ada entry berstatus `loading` (`isGenerating = entries.some(...)`), label berubah ke "Generate lagi" begitu minimal satu entry pernah dibuat.
+- Tab **Riwayat** di panel kanan sekarang menyaring `entries` yang `status === 'done'` (bukan array terpisah) — satu sumber data yang sama dengan feed canvas.
