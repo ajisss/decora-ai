@@ -5,7 +5,7 @@
       "name": "decora-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 5173,
+      "port": 4488,
       "autoPort": true
     }
   ]
