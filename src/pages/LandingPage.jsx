@@ -8,7 +8,6 @@ import Portfolio from '../components/Portfolio.jsx'
 import Pricing from '../components/Pricing.jsx'
 import Testimonials from '../components/Testimonials.jsx'
 import FAQ from '../components/FAQ.jsx'
-import BriefForm from '../components/BriefForm.jsx'
 import Footer from '../components/Footer.jsx'
 
 export default function LandingPage() {
@@ -24,7 +23,6 @@ export default function LandingPage() {
         <Pricing data={content.packages} />
         <Testimonials data={content.testimonials} />
         <FAQ data={content.faq} />
-        <BriefForm data={content.form} />
       </main>
       <Footer />
     </div>

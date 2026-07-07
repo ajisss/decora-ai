@@ -147,13 +147,6 @@ export const content = {
     ],
   },
 
-  form: {
-    eyebrow: 'Upgrade ke tim',
-    title: 'Mau hasil final dikerjain tim?',
-    sub: 'Isi detail singkat. Tim ubah hasil generate-mu jadi aset rapi & pakem budaya, siap dipakai untuk presentasi maupun produksi.',
-    submitLabel: 'Kirim Detail',
-  },
-
   generator: {
     eyebrow: 'Coba sekarang',
     title: 'Tulis keinginanmu, lihat hasilnya.',

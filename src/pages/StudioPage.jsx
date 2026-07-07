@@ -159,7 +159,7 @@ export default function StudioPage() {
             {status === 'done' && (
               <div className="mt-6 rounded-xl2 border border-clay/25 bg-clay-soft px-5 py-4">
                 <p className="text-sm text-ink-soft">{g.resultHint}</p>
-                <a href="#brief" className="btn-primary mt-4 w-full">
+                <a href="/#generator" className="btn-primary mt-4 w-full">
                   {g.upgradeCta} <StepIcon name="arrow" className="h-4 w-4" />
                 </a>
               </div>

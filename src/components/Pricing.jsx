@@ -36,7 +36,7 @@ export default function Pricing({ data }) {
               </ul>
 
               <a
-                href="#brief"
+                href="#generator"
                 className={`mt-7 ${plan.featured ? 'btn-primary' : 'btn-ghost'} w-full`}
               >
                 {plan.cta}
