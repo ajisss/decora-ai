@@ -1,7 +1,7 @@
 import { content } from '../content.js'
 
 export default function Footer() {
-  const { brand, footer, nav } = content.shared
+  const { brand, footer, nav } = content
   return (
     <footer className="border-t border-paper-line bg-paper">
       <div className="container-content py-14">

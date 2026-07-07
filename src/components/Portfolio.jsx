@@ -5,7 +5,7 @@ import { StepIcon } from './icons.jsx'
 // Placeholder visual: gradient + label (belum ada aset gambar riil).
 // Tiap kartu menampilkan prompt → hasil generate untuk menegaskan alur self-serve.
 export default function Portfolio() {
-  const g = content.shared.gallery
+  const g = content.gallery
   return (
     <section id="portofolio" className="container-content py-20 md:py-28">
       <SectionHeading eyebrow={g.eyebrow} title={g.title} sub={g.sub} />

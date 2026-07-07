@@ -3,7 +3,7 @@ import SectionHeading from './SectionHeading.jsx'
 import { StepIcon } from './icons.jsx'
 
 export default function HowItWorks({ data }) {
-  const steps = content.shared.steps
+  const steps = content.stepsList
   return (
     <section id="cara-kerja" className="border-y border-paper-line bg-paper-soft py-20 md:py-28">
       <div className="container-content">

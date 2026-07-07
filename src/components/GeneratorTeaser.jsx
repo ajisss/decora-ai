@@ -7,8 +7,8 @@ import ReferenceImageInput from './generator/ReferenceImageInput.jsx'
 // Teaser di landing page: hanya menangkap input (prompt + referensi opsional).
 // Generate sungguhan (loading, hasil, edit lanjutan) terjadi di halaman
 // terpisah /studio supaya usernya fokus di sana.
-export default function GeneratorTeaser({ audience }) {
-  const g = content.shared.generator
+export default function GeneratorTeaser() {
+  const g = content.generator
   const navigate = useNavigate()
   const [prompt, setPrompt] = useState('')
   const [reference, setReference] = useState(null)
@@ -18,7 +18,7 @@ export default function GeneratorTeaser({ audience }) {
   }
 
   const goGenerate = () => {
-    navigate('/studio', { state: { prompt, reference, audience, autorun: true } })
+    navigate('/studio', { state: { prompt, reference, autorun: true } })
   }
 
   return (
@@ -38,7 +38,7 @@ export default function GeneratorTeaser({ audience }) {
           rows={3}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder={g.placeholder[audience]}
+          placeholder={g.placeholder}
           className="w-full resize-none rounded-lg border border-paper-line bg-paper-soft px-4 py-3 text-[15px] leading-relaxed text-ink placeholder:text-ink-muted/70 focus:border-clay focus:bg-white focus:outline-none focus:ring-2 focus:ring-clay/20"
         />
 

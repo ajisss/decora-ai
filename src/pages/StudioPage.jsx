@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { content } from '../content.js'
 import { StepIcon } from '../components/icons.jsx'
-import AudienceToggle from '../components/AudienceToggle.jsx'
 import ReferenceImageInput from '../components/generator/ReferenceImageInput.jsx'
 import ResultTile from '../components/generator/ResultTile.jsx'
 import EmptyState from '../components/generator/EmptyState.jsx'
@@ -10,10 +9,10 @@ import EmptyState from '../components/generator/EmptyState.jsx'
 // Halaman fokus: edit permintaan di kiri, preview hasil di kanan.
 // Dibuka dari teaser di landing (Hero/Nav/GeneratorTeaser) lewat navigate('/studio', {state}).
 // Simulasi — belum ada AI riil, generate cuma menunda lalu render placeholder.
-export default function StudioPage({ audience, setAudience }) {
+export default function StudioPage() {
   const { state } = useLocation()
-  const g = content.shared.generator
-  const s = content.shared.studio
+  const g = content.generator
+  const s = content.studio
 
   const [prompt, setPrompt] = useState(state?.prompt ?? '')
   const [reference, setReference] = useState(state?.reference ?? null)
@@ -67,17 +66,14 @@ export default function StudioPage({ audience, setAudience }) {
         <div className="container-content flex h-16 items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
             <span className="text-clay">✦</span>
-            {content.shared.brand}
+            {content.brand}
           </Link>
           <span className="hidden rounded-full bg-clay-soft px-3 py-1 text-xs font-semibold text-clay-deep sm:inline-block">
             {s.badge}
           </span>
-          <div className="flex items-center gap-3">
-            <AudienceToggle audience={audience} setAudience={setAudience} size="sm" />
-            <Link to="/" className="hidden text-sm font-medium text-ink-muted hover:text-ink sm:inline">
-              {s.backLabel}
-            </Link>
-          </div>
+          <Link to="/" className="text-sm font-medium text-ink-muted hover:text-ink">
+            {s.backLabel}
+          </Link>
         </div>
       </header>
 
@@ -93,7 +89,7 @@ export default function StudioPage({ audience, setAudience }) {
               rows={5}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder={g.placeholder[audience]}
+              placeholder={g.placeholder}
               className="mt-4 w-full resize-none rounded-lg border border-paper-line bg-paper-soft px-4 py-3 text-[15px] leading-relaxed text-ink placeholder:text-ink-muted/70 focus:border-clay focus:bg-white focus:outline-none focus:ring-2 focus:ring-clay/20"
             />
 

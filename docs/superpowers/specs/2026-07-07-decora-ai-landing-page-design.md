@@ -103,3 +103,13 @@ Perubahan lanjutan: tombol Generate di landing tidak lagi menampilkan hasil inli
 - **`ReferenceImageInput`** (`src/components/generator/ReferenceImageInput.jsx`): upload file gambar → disimpan sebagai data URL di state (cukup untuk demo, ikut lewat `location.state` saat navigasi). Dipakai di teaser maupun studio.
 - Komponen hasil (`ResultTile`, `EmptyState`) diekstrak ke `src/components/generator/` supaya dipakai bersama.
 - **Catatan teknis penting**: efek autorun-on-mount awalnya memakai ref-guard sekali-jalan yang rusak oleh React StrictMode (setup→cleanup→setup di dev) — timer generate ke-cancel dan macet di "loading" selamanya. Diperbaiki dengan menaruh timer di dalam efek yang sama (bukan ref bersama) dan tanpa guard permanen, supaya re-setup StrictMode membuat timer baru yang benar.
+
+## Amendemen — Hapus Toggle Dual-Audience, Satu Copy Netral (2026-07-07)
+
+Toggle "Saya Decorator / Saya Calon Pengantin" dihapus sepenuhnya (Nav, Hero, header Studio). Semua section sekarang pakai **satu copy netral** yang nyambung buat decorator maupun calon pengantin sekaligus, bukan lagi konten yang berganti per segmen.
+
+- `content.js` direstrukturisasi dari `{ b2b, b2c, shared }` menjadi objek flat tunggal (`content.hero`, `content.problems`, `content.packages`, dst) — tidak ada lagi indeks `content[audience]`.
+- Pricing: 3 tier netral — **Gratis** (coba generate), **Plus** (langganan, generate lebih bebas), **Aset Final/Tim** (per-project, dikerjain tim). Bukan lagi 2 set tier terpisah per segmen.
+- Testimoni & FAQ: digabung jadi satu list yang mencampur sudut pandang decorator dan calon pengantin (peran masing-masing sudah jelas dari nama/role di tiap testimoni, tidak perlu label segmen).
+- Komponen `AudienceToggle.jsx` dihapus. Prop `audience`/`setAudience` dibuang dari `App.jsx`, `LandingPage.jsx`, `StudioPage.jsx`, `Nav.jsx`, `Hero.jsx`, `GeneratorTeaser.jsx`, `BriefForm.jsx`. `content.generator.placeholder` jadi satu string (bukan `{ b2b, b2c }`).
+- Penamaan di `content.js` dirapikan: `steps` (header section "Cara kerja") menjadi `howItWorks`, dan daftar 6 langkah ikon (dulu `shared.steps`) menjadi `stepsList` — supaya tidak ambigu.

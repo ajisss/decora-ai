@@ -2,15 +2,13 @@ import { useState } from 'react'
 import { StepIcon } from './icons.jsx'
 
 // Form visual-only: tidak ada backend. Submit menampilkan pesan terima kasih statis.
-export default function BriefForm({ audience, data }) {
+export default function BriefForm({ data }) {
   const [submitted, setSubmitted] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     setSubmitted(true)
   }
-
-  const contactLabel = audience === 'b2b' ? 'Nama studio / decorator' : 'Nama kamu'
 
   return (
     <section id="brief" className="container-content py-20 md:py-28">
@@ -43,7 +41,7 @@ export default function BriefForm({ audience, data }) {
             </div>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-              <Field label={contactLabel} htmlFor="nama">
+              <Field label="Nama kamu" htmlFor="nama">
                 <input id="nama" type="text" required className={inputClass} placeholder="Ketik di sini" />
               </Field>
 

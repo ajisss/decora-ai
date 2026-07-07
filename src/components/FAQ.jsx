@@ -2,7 +2,6 @@ import { useState } from 'react'
 import SectionHeading from './SectionHeading.jsx'
 
 export default function FAQ({ data }) {
-  // Reset state saat audience berubah tidak perlu — key di App memaksa remount.
   const [open, setOpen] = useState(0)
   return (
     <section id="faq" className="border-t border-paper-line bg-paper-soft py-20 md:py-28">

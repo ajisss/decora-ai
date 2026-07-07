@@ -6,7 +6,7 @@ import { StepIcon } from '../icons.jsx'
 // Disimpan sebagai data URL di state — cukup untuk demo & bisa dioper
 // lewat navigasi antar halaman (location.state) tanpa perlu backend.
 export default function ReferenceImageInput({ value, onChange }) {
-  const r = content.shared.reference
+  const r = content.reference
   const inputRef = useRef(null)
 
   const handleFile = (e) => {

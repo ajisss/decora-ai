@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { content } from '../content.js'
-import AudienceToggle from './AudienceToggle.jsx'
 
-export default function Nav({ audience, setAudience }) {
+export default function Nav() {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -23,11 +22,11 @@ export default function Nav({ audience, setAudience }) {
       <div className="container-content flex h-16 items-center justify-between gap-4">
         <a href="#top" className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
           <span className="text-clay">✦</span>
-          {content.shared.brand}
+          {content.brand}
         </a>
 
         <nav className="hidden items-center gap-7 md:flex">
-          {content.shared.nav.map((l) => (
+          {content.nav.map((l) => (
             <a
               key={l.href}
               href={l.href}
@@ -38,11 +37,7 @@ export default function Nav({ audience, setAudience }) {
           ))}
         </nav>
 
-        <div className="hidden md:block">
-          <AudienceToggle audience={audience} setAudience={setAudience} size="sm" />
-        </div>
-
-        <a href="#generator" className="btn-primary md:hidden">
+        <a href="#generator" className="btn-primary">
           Coba
         </a>
       </div>

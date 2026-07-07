@@ -1,6 +1,4 @@
-import AudienceToggle from './AudienceToggle.jsx'
-
-export default function Hero({ audience, setAudience, data }) {
+export default function Hero({ data }) {
   return (
     <section id="top" className="relative overflow-hidden bg-paper-soft">
       <div
@@ -12,10 +10,6 @@ export default function Hero({ audience, setAudience, data }) {
       />
       <div className="container-content relative py-16 md:py-24">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-8 flex justify-center">
-            <AudienceToggle audience={audience} setAudience={setAudience} />
-          </div>
-
           <p className="eyebrow mb-4">{data.eyebrow}</p>
           <h1 className="font-display text-4xl font-semibold leading-[1.1] text-ink md:text-6xl">
             {data.headline}
