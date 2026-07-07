@@ -297,7 +297,7 @@ export const content = {
       button: 'Generate',
       loading: 'AI lagi meracik konsepmu…',
       resultTitle: 'Hasil generate',
-      resultHint: 'Suka salah satu? Utak-atik lagi, atau sempurnakan dengan tim.',
+      resultHint: 'Suka hasilnya? Utak-atik lagi, atau sempurnakan dengan tim.',
       regenerate: 'Generate lagi',
       upgradeCta: 'Sempurnakan dengan tim',
       note: 'Hasil ini ilustratif — mesin generate AI masih dalam pengembangan. Daftar buat jadi yang pertama coba versi aslinya.',

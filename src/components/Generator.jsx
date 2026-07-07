@@ -3,7 +3,7 @@ import { content } from '../content.js'
 import { StepIcon } from './icons.jsx'
 
 // Demo generator SIMULASI (belum ada AI riil). Alur: user ketik / pilih gaya
-// → tekan Generate → loading singkat → tampil 4 "hasil" placeholder.
+// → tekan Generate → loading singkat → tampil 1 "hasil" placeholder.
 // Tujuannya menunjukkan UX self-serve, bukan menghasilkan gambar sungguhan.
 export default function Generator({ audience }) {
   const g = content.shared.generator
@@ -102,10 +102,8 @@ export default function Generator({ audience }) {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => (
-              <ResultTile key={i} loading={status === 'loading'} seed={seed * 4 + i} />
-            ))}
+          <div className="mx-auto max-w-sm">
+            <ResultTile loading={status === 'loading'} seed={seed} />
           </div>
 
           {status === 'done' && (
