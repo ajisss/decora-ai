@@ -113,3 +113,20 @@ Toggle "Saya Decorator / Saya Calon Pengantin" dihapus sepenuhnya (Nav, Hero, he
 - Testimoni & FAQ: digabung jadi satu list yang mencampur sudut pandang decorator dan calon pengantin (peran masing-masing sudah jelas dari nama/role di tiap testimoni, tidak perlu label segmen).
 - Komponen `AudienceToggle.jsx` dihapus. Prop `audience`/`setAudience` dibuang dari `App.jsx`, `LandingPage.jsx`, `StudioPage.jsx`, `Nav.jsx`, `Hero.jsx`, `GeneratorTeaser.jsx`, `BriefForm.jsx`. `content.generator.placeholder` jadi satu string (bukan `{ b2b, b2c }`).
 - Penamaan di `content.js` dirapikan: `steps` (header section "Cara kerja") menjadi `howItWorks`, dan daftar 6 langkah ikon (dulu `shared.steps`) menjadi `stepsList` — supaya tidak ambigu.
+
+## Amendemen — Hapus Form Upgrade-ke-Tim (2026-07-07)
+
+Section form "Upgrade ke tim" di bawah landing (`BriefForm.jsx`, `content.form`) dihapus. CTA yang tadinya mengarah ke situ ("Serahkan ke Tim" di Pricing, "Sempurnakan dengan tim" di Studio) dialihkan ke `#generator` / `/#generator` supaya tidak jadi link mati.
+
+## Amendemen — Studio Diubah Jadi Workspace Ala AI Tool (2026-07-07)
+
+Referensi: layout tool AI generator (sidebar ikon kiri, canvas besar tengah, bottom bar prompt, panel kanan Explore/History). Diadaptasi ke `/studio` dengan **tema tetap terang** konsisten dengan landing (bukan dark mode seperti referensi) — hanya struktur layout yang diadopsi, palet tetap paper/ink/clay.
+
+- **Sidebar kiri** (`w-16`, hilang di bawah `md`): ikon Beranda (`Link to="/"`), Generate (aktif/highlight, non-klik karena representasi halaman saat ini), dan Riwayat (khusus mobile, `lg:hidden`, buka panel overlay).
+- **Canvas tengah**: state idle menampilkan judul besar + hint (analog "Light Up Your Creation"), loading menampilkan skeleton, done menampilkan hasil generate ukuran besar (klik untuk lightbox) + kartu CTA upgrade ke tim.
+- **Bottom bar** menggantikan card edit kiri sebelumnya: textarea prompt, pill referensi gambar (mode `compact` baru di `ReferenceImageInput`), chip gaya, tombol Generate/Generate lagi — semuanya dalam satu baris di bawah canvas, bukan panel terpisah.
+- **Panel kanan** (`w-[340px]`, hilang di bawah `lg`, diganti tombol "Contoh & Riwayat" yang membuka overlay dari kanan): dua tab —
+  - **Contoh**: reuse `content.gallery.items` sebagai galeri prompt inspirasi; klik salah satu langsung mengisi prompt (`useExamplePrompt`).
+  - **Riwayat**: daftar hasil generate di sesi berjalan (state lokal `history`, tidak persisten), ditambah tiap kali generate selesai. Kosong → pesan `content.studio.historyEmpty`.
+- Komponen `EmptyState.jsx` dihapus (state idle sekarang ditulis langsung di `StudioPage` sebagai judul besar, bukan kotak kosong generik).
+- `ReferenceImageInput` mendapat prop `compact` — versi pill kecil (thumbnail bulat + tombol hapus ikon silang) untuk ditaruh di baris toolbar bottom bar, terpisah dari versi field penuh yang masih dipakai di `GeneratorTeaser`.

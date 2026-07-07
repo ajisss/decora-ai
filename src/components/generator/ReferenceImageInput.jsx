@@ -5,7 +5,10 @@ import { StepIcon } from '../icons.jsx'
 // Upload referensi gambar (mis. foto lokasi, screenshot Pinterest).
 // Disimpan sebagai data URL di state — cukup untuk demo & bisa dioper
 // lewat navigasi antar halaman (location.state) tanpa perlu backend.
-export default function ReferenceImageInput({ value, onChange }) {
+//
+// `compact`: pill kecil tanpa label/hint, buat ditaruh di baris toolbar
+// (mis. bottom bar Studio), bukan sebagai blok field penuh.
+export default function ReferenceImageInput({ value, onChange, compact = false }) {
   const r = content.reference
   const inputRef = useRef(null)
 
@@ -18,18 +21,52 @@ export default function ReferenceImageInput({ value, onChange }) {
     e.target.value = ''
   }
 
+  const fileInput = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept="image/*"
+      onChange={handleFile}
+      className="hidden"
+      aria-hidden="true"
+      tabIndex={-1}
+    />
+  )
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2">
+        {fileInput}
+        {value ? (
+          <div className="flex items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">
+            <img src={value} alt="Referensi" className="h-6 w-6 rounded-full object-cover" />
+            <button
+              type="button"
+              onClick={() => onChange(null)}
+              aria-label={r.remove}
+              className="text-ink-muted transition-colors hover:text-red-600"
+            >
+              <StepIcon name="close" className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-clay/40 hover:text-clay-deep"
+          >
+            <StepIcon name="image" className="h-3.5 w-3.5" />
+            {content.studio.materialLabel}
+          </button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div>
       <span className="mb-1.5 block text-sm font-medium text-ink-soft">{r.label}</span>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFile}
-        className="hidden"
-        aria-hidden="true"
-        tabIndex={-1}
-      />
+      {fileInput}
 
       {value ? (
         <div className="flex items-center gap-3 rounded-lg border border-paper-line bg-paper-soft p-2">

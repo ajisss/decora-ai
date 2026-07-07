@@ -174,10 +174,23 @@ export const content = {
   studio: {
     backLabel: 'Kembali ke beranda',
     badge: 'Studio Generate',
-    editTitle: 'Edit permintaan',
+    canvasIdleTitle: 'Wujudkan Dekorasi Impianmu Bareng Decora AI',
+    canvasIdleHint: 'Tulis keinginanmu di bawah, lalu tekan Generate.',
     previewTitle: 'Preview',
     autoGenerating: 'Membuat generate pertamamu…',
-    emptyPromptHint: 'Belum ada permintaan. Tulis di sebelah kiri lalu tekan Generate.',
+    emptyPromptHint: 'Belum ada permintaan. Tulis di bawah lalu tekan Generate.',
+    sidebar: {
+      home: 'Beranda',
+      generate: 'Generate',
+      history: 'Riwayat',
+    },
+    tabs: {
+      explore: 'Contoh',
+      history: 'Riwayat',
+    },
+    historyEmpty: 'Belum ada riwayat generate di sesi ini. Hasil generate-mu bakal muncul di sini.',
+    exploreHint: 'Klik salah satu contoh buat pakai promptnya.',
+    materialLabel: '+ referensi',
   },
 
   stepsList: [
