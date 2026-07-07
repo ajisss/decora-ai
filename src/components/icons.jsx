@@ -58,6 +58,7 @@ export function StepIcon({ name, className = 'h-6 w-6' }) {
         <path d="M12 8l1.2 2.8L16 12l-2.8 1.2L12 16l-1.2-2.8L8 12l2.8-1.2Z" />
       </>
     ),
+    close: <path d="M6 6l12 12M18 6 6 18" />,
   }
   return (
     <svg {...base} className={className} aria-hidden="true">

@@ -296,6 +296,7 @@ export const content = {
       chips: ['Jawa Klasik', 'Jawa × Modern', 'Rustic Garden', 'Sunda', 'Intimate', 'Nasional'],
       button: 'Generate',
       loading: 'AI lagi meracik konsepmu…',
+      emptyHint: 'Tulis keinginanmu di sebelah kiri, hasilnya muncul di sini.',
       resultTitle: 'Hasil generate',
       resultHint: 'Suka hasilnya? Utak-atik lagi, atau sempurnakan dengan tim.',
       regenerate: 'Generate lagi',
