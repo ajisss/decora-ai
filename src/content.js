@@ -303,6 +303,22 @@ export const content = {
       upgradeCta: 'Sempurnakan dengan tim',
       note: 'Hasil ini ilustratif — mesin generate AI masih dalam pengembangan. Daftar buat jadi yang pertama coba versi aslinya.',
     },
+    reference: {
+      label: 'Referensi gambar (opsional)',
+      hint: 'Upload foto lokasi, Pinterest, atau referensi gaya yang kamu suka',
+      add: 'Tambah gambar referensi',
+      change: 'Ganti gambar',
+      remove: 'Hapus',
+    },
+    studio: {
+      backLabel: 'Kembali ke beranda',
+      badge: 'Studio Generate',
+      editTitle: 'Edit permintaan',
+      previewTitle: 'Preview',
+      autoGenerating: 'Membuat generate pertamamu…',
+      emptyPromptHint: 'Belum ada permintaan. Tulis di sebelah kiri lalu tekan Generate.',
+    },
+
     steps: [
       { icon: 'brief', title: 'Tulis keinginan', body: 'Ketik gaya, budaya, warna, elemen wajib, dan budget. Bisa pilih dari contoh gaya biar cepat.' },
       { icon: 'spark', title: 'AI generate gambar', body: 'Dalam hitungan detik, keluar beberapa opsi visual dekorasi yang paham gaya & istilah lokal.' },

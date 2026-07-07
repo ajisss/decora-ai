@@ -92,3 +92,14 @@ Perubahan pada implementasi:
 - **Pricing** jadi hybrid: tier self-serve (Gratis/Plus untuk B2C; Pro/Team untuk B2B) + tier jasa ("Hasil/Aset Final — dikerjain tim").
 - **BriefForm** (bawah) direposisi jadi form **upgrade ke tim**, tetap visual-only.
 - Generator & form tetap non-fungsional (pra-validasi); note eksplisit "mesin generate AI masih dalam pengembangan".
+
+## Amendemen — Generate Pindah ke Halaman Studio + Referensi Gambar (2026-07-07)
+
+Perubahan lanjutan: tombol Generate di landing tidak lagi menampilkan hasil inline, melainkan **berpindah ke halaman terpisah `/studio`** supaya user fokus mengedit permintaan & melihat preview tanpa distraksi konten marketing. Ditambahkan juga kemampuan **upload gambar referensi** (opsional), bukan cuma menampilkan hasil.
+
+- **Routing** ditambahkan (`react-router-dom`). `App.jsx` memegang state `audience` (dibagi lintas halaman) dan merender `<Routes>`: `/` → `LandingPage`, `/studio` → `StudioPage`.
+- **`GeneratorTeaser`** (landing, menggantikan `Generator` lama) hanya menangkap input: prompt, chip gaya, dan referensi gambar. Tombol Generate memanggil `navigate('/studio', { state: { prompt, reference, audience, autorun: true } })` — tidak ada hasil ditampilkan di landing.
+- **`StudioPage`** (`src/pages/StudioPage.jsx`): halaman fokus dua kolom — kiri edit (prompt, chip, upload referensi, tombol Generate/Generate lagi), kanan preview (empty/loading/hasil + lightbox). Auto-generate saat dibuka dari teaser (`state.autorun`).
+- **`ReferenceImageInput`** (`src/components/generator/ReferenceImageInput.jsx`): upload file gambar → disimpan sebagai data URL di state (cukup untuk demo, ikut lewat `location.state` saat navigasi). Dipakai di teaser maupun studio.
+- Komponen hasil (`ResultTile`, `EmptyState`) diekstrak ke `src/components/generator/` supaya dipakai bersama.
+- **Catatan teknis penting**: efek autorun-on-mount awalnya memakai ref-guard sekali-jalan yang rusak oleh React StrictMode (setup→cleanup→setup di dev) — timer generate ke-cancel dan macet di "loading" selamanya. Diperbaiki dengan menaruh timer di dalam efek yang sama (bukan ref bersama) dan tanpa guard permanen, supaya re-setup StrictMode membuat timer baru yang benar.
