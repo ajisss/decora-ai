@@ -42,8 +42,8 @@ export default function Nav({ audience, setAudience }) {
           <AudienceToggle audience={audience} setAudience={setAudience} size="sm" />
         </div>
 
-        <a href="#brief" className="btn-primary md:hidden">
-          Mulai
+        <a href="#generator" className="btn-primary md:hidden">
+          Coba
         </a>
       </div>
     </header>

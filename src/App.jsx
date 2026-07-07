@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { content } from './content.js'
 import Nav from './components/Nav.jsx'
 import Hero from './components/Hero.jsx'
+import Generator from './components/Generator.jsx'
 import ProblemFraming from './components/ProblemFraming.jsx'
 import HowItWorks from './components/HowItWorks.jsx'
 import Portfolio from './components/Portfolio.jsx'
@@ -21,6 +22,7 @@ export default function App() {
       <Nav audience={audience} setAudience={setAudience} />
       <main>
         <Hero audience={audience} setAudience={setAudience} data={c.hero} />
+        <Generator key={`gen-${audience}`} audience={audience} />
         {/* key={audience} memaksa remount section berbasis copy saat toggle,
             supaya state lokal (mis. FAQ accordion) ikut reset & animasi fresh. */}
         <ProblemFraming key={`prob-${audience}`} data={c.problems} />

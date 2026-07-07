@@ -78,3 +78,17 @@ Sesuai PRD (Section 7) dan keputusan sesi ini:
 - Semua 10 section tampil dengan konten dari PRD (bukan lorem ipsum di copy utama; placeholder hanya untuk gambar galeri & foto testimoni).
 - Form bisa diisi dan submit menampilkan pesan terima kasih statis.
 - Estetika clean-minimal konsisten (palet, spacing, tipografi seragam).
+
+## Amendemen — Pivot ke Self-Serve Generate (2026-07-07)
+
+Berdasarkan klarifikasi konsep dari user (referensi: andalai.id, tapi generate gambar): produk **bukan** jasa "serahkan brief, tim kerjain", melainkan **self-serve** — user mengetik keinginan (gaya, budaya, elemen, budget) dan **AI langsung generate gambar dekorasi**. Model: **hybrid** — generate mandiri sebagai pintu masuk, opsi "dikerjain tim" sebagai upgrade untuk aset final rapi.
+
+Perubahan pada implementasi:
+
+- **Copy** di seluruh section direframe dari "serahkan brief" → "ketik keinginan, langsung jadi gambar" (kedua segmen).
+- **Section baru `Generator`** (`src/components/Generator.jsx`) — demo interaktif **simulasi** (belum ada AI riil): textarea + chip gaya → tombol Generate → loading singkat → grid 4 gambar placeholder + CTA "Sempurnakan dengan tim". Ditempatkan tepat setelah Hero; CTA utama Hero & Nav mengarah ke sini.
+- **How it works** direframe jadi alur self-serve: Tulis keinginan → AI generate → Utak-atik → Pakai buat vendor → (Opsional) Sempurnakan dengan tim.
+- **Portfolio** direframe: `before/after` → `prompt/hasil` (contoh hasil generate).
+- **Pricing** jadi hybrid: tier self-serve (Gratis/Plus untuk B2C; Pro/Team untuk B2B) + tier jasa ("Hasil/Aset Final — dikerjain tim").
+- **BriefForm** (bawah) direposisi jadi form **upgrade ke tim**, tetap visual-only.
+- Generator & form tetap non-fungsional (pra-validasi); note eksplisit "mesin generate AI masih dalam pengembangan".

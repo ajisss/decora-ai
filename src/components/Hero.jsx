@@ -25,7 +25,7 @@ export default function Hero({ audience, setAudience, data }) {
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a href="#brief" className="btn-primary w-full sm:w-auto">
+            <a href="#generator" className="btn-primary w-full sm:w-auto">
               {data.ctaPrimary}
             </a>
             <a href="#portofolio" className="btn-ghost w-full sm:w-auto">

@@ -3,7 +3,7 @@ import SectionHeading from './SectionHeading.jsx'
 import { StepIcon } from './icons.jsx'
 
 // Placeholder visual: gradient + label (belum ada aset gambar riil).
-// Tiap kartu menampilkan before → after untuk menegaskan value "bukti hasil".
+// Tiap kartu menampilkan prompt → hasil generate untuk menegaskan alur self-serve.
 export default function Portfolio() {
   const g = content.shared.gallery
   return (
@@ -16,13 +16,13 @@ export default function Portfolio() {
             className="overflow-hidden rounded-xl2 border border-paper-line bg-white"
           >
             <div className="grid grid-cols-2">
-              <PlaceholderPane label={item.before} variant="before" seed={i} />
-              <PlaceholderPane label={item.after} variant="after" seed={i} />
+              <PlaceholderPane label={item.prompt} variant="before" seed={i} />
+              <PlaceholderPane label={item.result} variant="after" seed={i} />
             </div>
             <figcaption className="flex items-center justify-between px-5 py-4">
               <span className="text-sm font-semibold text-ink">{item.tag}</span>
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-                before <StepIcon name="arrow" className="h-3.5 w-3.5" /> after
+                prompt <StepIcon name="arrow" className="h-3.5 w-3.5" /> hasil
               </span>
             </figcaption>
           </figure>

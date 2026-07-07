@@ -18,9 +18,15 @@ export default function HowItWorks({ data }) {
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-clay-soft text-clay-deep">
                   <StepIcon name={step.icon} className="h-5 w-5" />
                 </span>
-                <span className="font-display text-sm font-semibold text-ink-muted">
-                  Langkah {i + 1}
-                </span>
+                {step.optional ? (
+                  <span className="rounded-full bg-ink/5 px-2.5 py-1 font-display text-xs font-semibold text-ink-muted">
+                    Opsional
+                  </span>
+                ) : (
+                  <span className="font-display text-sm font-semibold text-ink-muted">
+                    Langkah {i + 1}
+                  </span>
+                )}
               </div>
               <h3 className="mt-4 text-lg font-semibold text-ink">{step.title}</h3>
               <p className="mt-1.5 text-[15px] leading-relaxed text-ink-soft">{step.body}</p>
