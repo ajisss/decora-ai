@@ -9,6 +9,7 @@ import { downloadPng } from '../components/export/buildBriefPdf.js'
 import { useProjects } from '../context/ProjectsContext.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { content } from '../content.js'
 
 const t = content.app.studio
@@ -23,7 +24,7 @@ export default function StudioPage() {
   const { state } = useLocation()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { getProject, runGeneration, refreshProject, updateProject } = useProjects()
+  const { getProject, runGeneration, cancelGeneration, refreshProject, updateProject } = useProjects()
   const { showToast } = useToast()
   const project = getProject(projectId)
 
@@ -40,6 +41,9 @@ export default function StudioPage() {
   const [compareOpen, setCompareOpen] = useState(false)
   const [flashId, setFlashId] = useState(null)
   const [announcement, setAnnouncement] = useState('')
+  // Holds the action to run once the spend-confirmation dialog is accepted —
+  // every path that fires a paid image generation goes through this gate.
+  const [confirmGenerate, setConfirmGenerate] = useState(null)
   const autorunFired = useRef(false)
   const mainRef = useRef(null)
   const entryRefs = useRef(new Map())
@@ -171,18 +175,25 @@ export default function StudioPage() {
 
   const handleGenerate = () => {
     if (isPending) return
-    runGeneration(project.id, {
-      prompt: project.prompt,
-      modificationNote: note,
-      referenceGenerationImageId: referenceEntry?.imageId,
+    const noteAtConfirm = note
+    setConfirmGenerate(() => () => {
+      runGeneration(project.id, {
+        prompt: project.prompt,
+        modificationNote: noteAtConfirm,
+        referenceGenerationImageId: referenceEntry?.imageId,
+      })
+      setNote('')
     })
-    setNote('')
   }
 
   const handleRetry = (entry) => {
     if (isPending) return
-    runGeneration(project.id, { prompt: entry.prompt, referenceGenerationImageId: referenceEntry?.imageId })
+    setConfirmGenerate(() => () => {
+      runGeneration(project.id, { prompt: entry.prompt, referenceGenerationImageId: referenceEntry?.imageId })
+    })
   }
+
+  const handleCancel = (entry) => cancelGeneration(project.id, entry.id)
 
   // R4: only one reference at a time; picking a new one silently replaces the old.
   const handleUseAsReference = (entry) =>
@@ -239,6 +250,10 @@ export default function StudioPage() {
                     }}
                     className={`rounded-xl2 transition-shadow ${
                       flashId === entry.id ? 'ring-2 ring-clay' : ''
+                    } ${
+                      rightTab === 'analyze' && analyzeTargetId === entry.id && flashId !== entry.id
+                        ? 'ring-2 ring-clay/50 ring-offset-2 ring-offset-paper'
+                        : ''
                     }`}
                   >
                     <GenerationEntry
@@ -246,12 +261,17 @@ export default function StudioPage() {
                       index={i}
                       total={generations.length}
                       onOpenLightbox={(g) => setLightboxId(g.id)}
-                      onAnalyze={(g) => setAnalyzeTargetId(g.id)}
+                      onAnalyze={(g) => {
+                        setAnalyzeTargetId(g.id)
+                        setRightTab('analyze')
+                      }}
                       onExport={(g) => setExportTargetId(g.id)}
                       onRetry={handleRetry}
+                      onCancel={handleCancel}
                       onUseAsReference={handleUseAsReference}
                       isReference={referenceEntry?.id === entry.id}
                       isLatestDone={entry.id === latestDoneId}
+                      isBeingAnalyzed={rightTab === 'analyze' && analyzeTargetId === entry.id}
                       onToggleFavorite={handleToggleFavorite}
                       onToggleCompare={handleToggleCompare}
                       isCompareSelected={compareIds.includes(entry.id)}
@@ -323,7 +343,7 @@ export default function StudioPage() {
           </div>
         </div>
 
-        <aside className="hidden w-80 shrink-0 flex-col border-l border-paper-line bg-paper-soft lg:flex">
+        <aside className="hidden w-96 shrink-0 flex-col border-l border-paper-line bg-paper-soft lg:flex">
           <div className="p-3">
             <div className="inline-flex rounded-full border border-paper-line bg-paper p-1">
               <TabButton active={rightTab === 'setup'} onClick={() => setRightTab('setup')}>
@@ -332,10 +352,29 @@ export default function StudioPage() {
               <TabButton active={rightTab === 'history'} onClick={() => setRightTab('history')}>
                 {t.tabHistory}
               </TabButton>
+              <TabButton
+                active={rightTab === 'analyze'}
+                onClick={() => {
+                  if (!analyzeTargetId && latestDoneId) setAnalyzeTargetId(latestDoneId)
+                  setRightTab('analyze')
+                }}
+              >
+                {t.tabAnalyze}
+              </TabButton>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-4">
-            {rightTab === 'setup' ? (
+            {rightTab === 'analyze' ? (
+              <AnalyzePanel
+                projectId={project.id}
+                generation={analyzeTarget}
+                versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
+                onJumpToFeed={() => analyzeTarget && scrollToEntry(analyzeTarget.id)}
+                onExport={(gen) => {
+                  setExportTargetId(gen.id)
+                }}
+              />
+            ) : rightTab === 'setup' ? (
               <div className="space-y-4">
                 <dl className="space-y-3 rounded-xl2 border border-paper-line bg-paper p-4 text-sm">
                   {[
@@ -436,6 +475,7 @@ export default function StudioPage() {
                 type="button"
                 onClick={() => {
                   setAnalyzeTargetId(lightbox.id)
+                  setRightTab('analyze')
                   setLightboxId(null)
                 }}
                 aria-label={t.lightboxAnalyze}
@@ -480,16 +520,6 @@ export default function StudioPage() {
         </div>
       )}
 
-      <AnalyzePanel
-        projectId={project.id}
-        generation={analyzeTarget}
-        onClose={() => setAnalyzeTargetId(null)}
-        onExport={(gen) => {
-          setExportTargetId(gen.id)
-          setAnalyzeTargetId(null)
-        }}
-      />
-
       <ExportDialog
         project={project}
         generation={exportTarget}
@@ -497,8 +527,18 @@ export default function StudioPage() {
         onClose={() => setExportTargetId(null)}
         onAnalyzeFirst={() => {
           setAnalyzeTargetId(exportTargetId)
+          setRightTab('analyze')
           setExportTargetId(null)
         }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(confirmGenerate)}
+        onClose={() => setConfirmGenerate(null)}
+        onConfirm={() => confirmGenerate?.()}
+        title={t.confirmGenerateTitle}
+        body={t.confirmGenerateBody}
+        confirmLabel={t.confirmGenerateCta}
       />
     </AppShell>
   )

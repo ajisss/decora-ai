@@ -29,6 +29,9 @@ export const api = {
       body: JSON.stringify({ projectId, prompt, modificationNote, referenceImageId, referenceGenerationImageId }),
     }),
 
+  cancelGenerate: ({ projectId, generationId }) =>
+    request('/generate/cancel', { method: 'POST', body: JSON.stringify({ projectId, generationId }) }),
+
   analyze: ({ projectId, generationId }) =>
     request('/analyze', { method: 'POST', body: JSON.stringify({ projectId, generationId }) }),
 
@@ -41,4 +44,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ projectId, generationId, itemId, customPrompt }),
     }),
+
+  cancelItemImage: ({ projectId, generationId, itemId }) =>
+    request('/item-image/cancel', { method: 'POST', body: JSON.stringify({ projectId, generationId, itemId }) }),
 }

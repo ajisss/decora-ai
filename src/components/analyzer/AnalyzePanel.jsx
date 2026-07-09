@@ -5,6 +5,8 @@ import Skeleton from '../ui/Skeleton.jsx'
 import { useProjects } from '../../context/ProjectsContext.jsx'
 import { useToast } from '../ui/Toast.jsx'
 import EmptyState from '../ui/EmptyState.jsx'
+import ConfirmDialog from '../ui/ConfirmDialog.jsx'
+import ImageLightbox from '../ui/ImageLightbox.jsx'
 import { content } from '../../content.js'
 
 const t = content.app.analyze
@@ -24,22 +26,24 @@ const TAXONOMY_ORDER = [
   'Other',
 ]
 
-// Right-anchored slide-over, one generation at a time (ux-spec §8).
-export default function AnalyzePanel({ projectId, generation, onClose, onExport }) {
-  const { runAnalysis, updateProject, runItemImage } = useProjects()
+// Inline in the Studio right-side panel — not a drawer/overlay — since
+// analyzing is a main-journey step (uiuxcontext.md §7 Canvas → Analyze →
+// Export), not a peripheral action. One generation at a time.
+export default function AnalyzePanel({ projectId, generation, versionNumber, onJumpToFeed, onExport }) {
+  const { runAnalysis, updateProject, runItemImage, cancelItemImage } = useProjects()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [confirmReanalyze, setConfirmReanalyze] = useState(false)
+  const [zoomSrc, setZoomSrc] = useState(null)
 
-  useEffect(() => {
-    if (!generation) return
-    const onKey = (e) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [generation, onClose])
-
-  if (!generation) return null
+  if (!generation) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <EmptyState illustration="checklist" compact title={t.noDesignTitle} body={t.noDesignBody} />
+      </div>
+    )
+  }
 
   const analysis = generation.analysis
   // Q2: aria-live status for the analysis lifecycle.
@@ -97,133 +101,147 @@ export default function AnalyzePanel({ projectId, generation, onClose, onExport 
     .reduce((sum, i) => sum + (Number(String(i.estimatedCost).replace(/[^0-9]/g, '')) || 0), 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-ink/20" onClick={onClose} />
-      <div className="relative flex h-full w-full max-w-[420px] flex-col bg-paper shadow-2xl">
-        <div role="status" aria-live="polite" className="sr-only">
-          {liveMessage}
+    <div className="space-y-4">
+      <div role="status" aria-live="polite" className="sr-only">
+        {liveMessage}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-clay-soft px-2.5 py-1 text-xs font-semibold text-clay-deep">
+            <StepIcon name="checklist" className="h-3 w-3" />
+            {t.design} {versionNumber}
+          </span>
+          {onJumpToFeed && (
+            <button
+              type="button"
+              onClick={onJumpToFeed}
+              className="inline-flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-clay-deep"
+            >
+              {t.jumpToFeed}
+              <StepIcon name="external" className="h-3 w-3" />
+            </button>
+          )}
         </div>
-        <div className="flex items-center justify-between border-b border-paper-line p-4">
-          <div>
-            <h2 className="font-display text-lg text-ink">{t.title}</h2>
-            <p className="text-xs text-ink-muted">{t.design} {generation.id.slice(0, 6)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-paper-soft hover:text-ink"
-          >
-            <StepIcon name="close" className="h-5 w-5" />
+        <button
+          type="button"
+          onClick={() => setZoomSrc(`/images/${generation.imageId}`)}
+          className="mt-1.5 block w-full overflow-hidden rounded-xl2 border-2 border-clay/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
+        >
+          <img src={`/images/${generation.imageId}`} alt="" className="aspect-video w-full object-cover" />
+        </button>
+      </div>
+
+      <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} />
+
+      {!analysis && !loading && !error && (
+        <div className="flex flex-col items-center gap-3 rounded-xl2 border border-paper-line bg-paper py-8 text-center">
+          <button type="button" onClick={analyze} className="btn-primary">
+            {t.cta}
+          </button>
+          <p className="text-xs text-ink-muted">{t.ctaHint}</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="space-y-4">
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-clay-deep">
+            <Spinner /> {t.analyzing}
+          </p>
+          {Array.from({ length: 3 }).map((_, gi) => (
+            <div key={gi} className="space-y-2">
+              <div className="h-3 w-24 rounded bg-paper-soft" />
+              <Skeleton shape="checklist-row" />
+              <Skeleton shape="checklist-row" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-lg bg-danger-soft p-4 text-sm text-danger">
+          {error}
+          <button type="button" onClick={analyze} className="btn-ghost mt-3 !px-3 !py-1.5 text-xs">
+            {t.retry}
           </button>
         </div>
+      )}
 
-        <img src={`/images/${generation.imageId}`} alt="" className="aspect-video w-full object-cover" />
+      {analysis && !loading && groups.length === 0 && (
+        <EmptyState illustration="checklist" compact title={t.zeroTitle} body={t.zeroBody} cta={t.addItem} onCta={() => addManualItem('Other')} />
+      )}
 
-        <div className="flex-1 overflow-y-auto p-4">
-          {!analysis && !loading && !error && (
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <button type="button" onClick={analyze} className="btn-primary">
-                {t.cta}
-              </button>
-              <p className="text-xs text-ink-muted">{t.ctaHint}</p>
-            </div>
-          )}
-
-          {loading && (
-            <div className="space-y-4">
-              <p className="inline-flex items-center gap-1.5 text-sm font-medium text-clay-deep">
-                <Spinner /> {t.analyzing}
+      {analysis && !loading && groups.length > 0 && (
+        <div className="space-y-6">
+          {groups.map(({ cat, items }) => (
+            <div key={cat}>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted">
+                {t.categoryLabels[cat] ?? cat} ({items.length})
               </p>
-              {Array.from({ length: 3 }).map((_, gi) => (
-                <div key={gi} className="space-y-2">
-                  <div className="h-3 w-24 rounded bg-paper-soft" />
-                  <Skeleton shape="checklist-row" />
-                  <Skeleton shape="checklist-row" />
-                </div>
-              ))}
+              <div className="space-y-3">
+                {items.map((item) => (
+                  <ChecklistRow
+                    key={item.id}
+                    item={item}
+                    onToggle={() => toggleItem(item.id)}
+                    onEdit={(patch) => editItem(item.id, patch)}
+                    onRemove={item.isManual ? () => removeManual(item.id) : null}
+                    onGenerateItemImage={(customPrompt) =>
+                      runItemImage(projectId, generation.id, item.id, customPrompt)
+                    }
+                    onCancelItemImage={() => cancelItemImage(projectId, generation.id, item.id)}
+                  />
+                ))}
+              </div>
             </div>
-          )}
-
-          {error && (
-            <div className="rounded-lg bg-danger-soft p-4 text-sm text-danger">
-              {error}
-              <button type="button" onClick={analyze} className="btn-ghost mt-3 !px-3 !py-1.5 text-xs">
-                {t.retry}
-              </button>
-            </div>
-          )}
-
-          {analysis && !loading && groups.length === 0 && (
-            <EmptyState illustration="checklist" compact title={t.zeroTitle} body={t.zeroBody} cta={t.addItem} onCta={() => addManualItem('Other')} />
-          )}
-
-          {analysis && !loading && groups.length > 0 && (
-            <div className="space-y-6">
-              {groups.map(({ cat, items }) => (
-                <div key={cat}>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted">
-                    {t.categoryLabels[cat] ?? cat} ({items.length})
-                  </p>
-                  <div className="space-y-3">
-                    {items.map((item) => (
-                      <ChecklistRow
-                        key={item.id}
-                        item={item}
-                        onToggle={() => toggleItem(item.id)}
-                        onEdit={(patch) => editItem(item.id, patch)}
-                        onRemove={item.isManual ? () => removeManual(item.id) : null}
-                        onGenerateItemImage={(customPrompt) =>
-                          runItemImage(projectId, generation.id, item.id, customPrompt)
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
+      )}
 
-        {analysis && !loading && totalCost > 0 && (
-          <div className="border-t border-paper-line px-4 py-2 text-sm">
-            <span className="text-ink-muted">{t.costTotal}: </span>
-            <span className="font-semibold text-ink">Rp {totalCost.toLocaleString('id-ID')}</span>
+      {analysis && !loading && totalCost > 0 && (
+        <div className="rounded-xl2 border border-paper-line bg-paper px-4 py-2 text-sm">
+          <span className="text-ink-muted">{t.costTotal}: </span>
+          <span className="font-semibold text-ink">Rp {totalCost.toLocaleString('id-ID')}</span>
+        </div>
+      )}
+
+      {analysis && !loading && (
+        <Link to="/vendors" className="block text-sm font-medium text-clay-deep hover:underline">
+          {t.findVendors}
+        </Link>
+      )}
+
+      {analysis && !loading && confirmReanalyze && (
+        <div className="rounded-lg bg-clay-soft p-3 text-sm text-clay-deep">
+          {t.reanalyzeConfirm}
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmReanalyze(false)
+                analyze()
+              }}
+              className="btn-primary !px-3 !py-1.5 text-xs"
+            >
+              {t.reanalyze}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmReanalyze(false)}
+              className="btn-ghost !px-3 !py-1.5 text-xs"
+            >
+              {t.cancel}
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {analysis && !loading && (
-          <Link to="/vendors" className="block border-t border-paper-line px-4 py-2 text-sm font-medium text-clay-deep hover:underline">
-            {t.findVendors}
-          </Link>
-        )}
-
-        {analysis && !loading && confirmReanalyze && (
-          <div className="border-t border-paper-line bg-clay-soft p-3 text-sm text-clay-deep">
-            {t.reanalyzeConfirm}
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setConfirmReanalyze(false)
-                  analyze()
-                }}
-                className="btn-primary !px-3 !py-1.5 text-xs"
-              >
-                {t.reanalyze}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmReanalyze(false)}
-                className="btn-ghost !px-3 !py-1.5 text-xs"
-              >
-                {t.cancel}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {analysis && !loading && (
-          <div className="flex items-center justify-between gap-2 border-t border-paper-line p-4">
+      {analysis && !loading && (
+        <div className="space-y-2 border-t border-paper-line pt-3">
+          <button type="button" onClick={() => onExport(generation)} className="btn-primary w-full !py-2 text-sm">
+            {t.exportBrief}
+          </button>
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => addManualItem('Other')}
@@ -238,12 +256,9 @@ export default function AnalyzePanel({ projectId, generation, onClose, onExport 
             >
               {t.reanalyze}
             </button>
-            <button type="button" onClick={() => onExport(generation)} className="btn-primary !px-4 !py-2 text-sm">
-              {t.exportBrief}
-            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -257,16 +272,19 @@ function Spinner() {
   )
 }
 
-function ChecklistRow({ item, onToggle, onEdit, onRemove, onGenerateItemImage }) {
+function ChecklistRow({ item, onToggle, onEdit, onRemove, onGenerateItemImage, onCancelItemImage }) {
   const { showToast } = useToast()
   const [editing, setEditing] = useState(false)
   const [customizing, setCustomizing] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
+  const [confirmGenerate, setConfirmGenerate] = useState(false)
+  const [zoomSrc, setZoomSrc] = useState(null)
 
   const itemImage = item.itemImage
   const isPending = itemImage?.status === 'pending'
   const isDone = itemImage?.status === 'done'
   const isError = itemImage?.status === 'error'
+  const isCancelled = itemImage?.status === 'cancelled'
 
   // Auto-collapse the customize row only on an actual pending->done transition
   // (a fresh regenerate completing) — not just because isDone happens to
@@ -282,7 +300,9 @@ function ChecklistRow({ item, onToggle, onEdit, onRemove, onGenerateItemImage })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemImage?.status])
 
-  const generate = () => {
+  const generate = () => setConfirmGenerate(true)
+
+  const doGenerate = () => {
     onGenerateItemImage(customPrompt)
     setCustomPrompt('')
     // customizing stays open through the pending phase so the button the user
@@ -353,12 +373,30 @@ function ChecklistRow({ item, onToggle, onEdit, onRemove, onGenerateItemImage })
                 <Spinner />
                 {t.generatingItemImage}
               </span>
+              <button type="button" onClick={onCancelItemImage} className="text-xs font-medium text-ink-muted hover:text-danger">
+                {t.itemCancelling}
+              </button>
+            </div>
+          )}
+
+          {isCancelled && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-ink-muted">{t.itemCancelled}</span>
+              <button type="button" onClick={generate} className="text-xs font-medium text-clay-deep hover:underline">
+                {t.retry}
+              </button>
             </div>
           )}
 
           {isDone && itemImage.imageId && (
             <div className="flex items-center gap-2">
-              <img src={`/images/${itemImage.imageId}`} alt={item.name} className="h-12 w-12 rounded-md object-cover" />
+              <button
+                type="button"
+                onClick={() => setZoomSrc(`/images/${itemImage.imageId}`)}
+                className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
+              >
+                <img src={`/images/${itemImage.imageId}`} alt={item.name} className="h-12 w-12 rounded-md object-cover" />
+              </button>
               <button
                 type="button"
                 onClick={() => setCustomizing((c) => !c)}
@@ -425,6 +463,16 @@ function ChecklistRow({ item, onToggle, onEdit, onRemove, onGenerateItemImage })
           </button>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmGenerate}
+        onClose={() => setConfirmGenerate(false)}
+        onConfirm={doGenerate}
+        title={t.confirmItemTitle}
+        body={t.confirmItemBody}
+        confirmLabel={t.confirmItemCta}
+      />
+      <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} />
     </div>
   )
 }

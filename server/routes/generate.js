@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { nanoid } from 'nanoid'
-import { getProject, saveProject, saveImage } from '../lib/store.js'
-import { generateImage, editImage } from '../lib/kie.js'
+import { getProject, saveProject, saveImage, readImage, readUpload } from '../lib/store.js'
+import { generateImage, editImage } from '../lib/imaginer.js'
 import { mockGenerateImage, MOCK_AI_ENABLED } from '../lib/mockAi.js'
 
 const router = Router()
@@ -12,21 +12,25 @@ function todayCount(project) {
   return project.generations.filter((g) => g.createdAt.slice(0, 10) === today).length
 }
 
-// kie.ai's image-to-image model fetches the reference from a public URL — it
-// can't reach a localhost dev server. Only attempt it when PUBLIC_BASE_URL is
-// configured (e.g. a deployed instance or an ngrok tunnel); otherwise a
-// reference image is silently ignored and generation falls back to text-to-image.
-function publicUrlFor(pathname) {
-  const base = process.env.PUBLIC_BASE_URL
-  return base ? `${base.replace(/\/$/, '')}${pathname}` : null
+// Loads a reference image's bytes for image-to-image generation. Imaginer
+// accepts a direct upload of the file, so — unlike the previous kie.ai
+// client — no publicly reachable URL is required.
+async function loadReference(referenceGenerationImageId, referenceImageId) {
+  try {
+    if (referenceGenerationImageId) return { buffer: await readImage(referenceGenerationImageId), mime: 'image/png' }
+    if (referenceImageId) return readUpload(referenceImageId)
+    return null
+  } catch {
+    return null // stale/missing reference file — fall back to text-to-image
+  }
 }
 
-// kie.ai's task can take anywhere from ~30s to several minutes (observed), far
+// Imaginer's task can take anywhere from tens of seconds to a few minutes, far
 // past what's reasonable to hold an HTTP request open for. Generation runs in
 // the background; the client discovers completion via GET /api/projects/:id
 // polling — the same recovery path that already handles a page refresh
 // mid-generation (wireflow §5.3 / tasks.md G12).
-async function runGenerationInBackground(projectId, generationId, effectivePrompt, referenceUrl, hasReference) {
+async function runGenerationInBackground(projectId, generationId, effectivePrompt, reference) {
   let status = 'done'
   let imageId = null
   let error = null
@@ -34,8 +38,8 @@ async function runGenerationInBackground(projectId, generationId, effectivePromp
   try {
     const buffer = MOCK_AI_ENABLED
       ? await mockGenerateImage()
-      : hasReference && referenceUrl
-        ? await editImage(effectivePrompt, referenceUrl)
+      : reference
+        ? await editImage(effectivePrompt, reference.buffer, reference.mime)
         : await generateImage(effectivePrompt)
     imageId = await saveImage(generationId, buffer)
   } catch (err) {
@@ -55,6 +59,7 @@ async function runGenerationInBackground(projectId, generationId, effectivePromp
   if (!latest) return // project deleted mid-generation
   const generation = latest.generations.find((g) => g.id === generationId)
   if (!generation) return
+  if (generation.status === 'cancelled') return // user cancelled while this was in flight — don't resurrect it
   generation.status = status
   generation.imageId = imageId
   generation.error = error
@@ -103,18 +108,35 @@ router.post('/', async (req, res) => {
 
   // R3/R4: a reference image (wizard upload, or a prior "Use as reference" design)
   // guides generation via the image-to-image model instead of plain text-to-image.
-  const referenceUrl = referenceGenerationImageId
-    ? publicUrlFor(`/images/${referenceGenerationImageId}`)
-    : publicUrlFor(`/uploads/${referenceImageId ?? project.setup?.referenceImageId ?? ''}`)
-  const hasReference = Boolean(referenceGenerationImageId || referenceImageId || project.setup?.referenceImageId)
-  if (hasReference && !referenceUrl) {
-    console.warn('[generate] reference image ignored — PUBLIC_BASE_URL is not configured')
-  }
+  const reference = MOCK_AI_ENABLED
+    ? null
+    : await loadReference(referenceGenerationImageId, referenceImageId ?? project.setup?.referenceImageId)
 
   // Respond immediately with the pending entry; the client polls for the result.
   res.json({ generation, project })
 
-  runGenerationInBackground(projectId, generation.id, effectivePrompt, referenceUrl, hasReference)
+  runGenerationInBackground(projectId, generation.id, effectivePrompt, reference)
+})
+
+// Client-visible cancel: the background job can't truly abort an in-flight
+// Imaginer request, so this just marks the entry cancelled so the user can
+// start a new one immediately; the guard in runGenerationInBackground stops
+// a late result from overwriting this once the job does resolve.
+router.post('/cancel', async (req, res) => {
+  const { projectId, generationId } = req.body ?? {}
+  const project = await getProject(projectId)
+  if (!project) return res.status(404).json({ error: { message: 'Project not found', code: 'not_found' } })
+
+  const generation = project.generations.find((g) => g.id === generationId)
+  if (!generation) return res.status(404).json({ error: { message: 'Generation not found', code: 'not_found' } })
+  if (generation.status !== 'pending') {
+    return res.status(400).json({ error: { message: 'Generation is not in progress', code: 'bad_request' } })
+  }
+
+  generation.status = 'cancelled'
+  project.updatedAt = new Date().toISOString()
+  await saveProject(project)
+  res.json({ generation })
 })
 
 export default router

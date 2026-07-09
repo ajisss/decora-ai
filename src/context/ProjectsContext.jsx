@@ -239,6 +239,26 @@ export function ProjectsProvider({ children }) {
     [updateProject],
   )
 
+  // Cancellation is client-visible only — the background job on the server
+  // can't truly abort an in-flight Imaginer request. Marking the entry
+  // 'cancelled' server-side (so a late job result won't resurrect it) plus an
+  // optimistic local update is enough: the existing poll loop above already
+  // stops as soon as it sees a status other than 'pending'.
+  const cancelGeneration = useCallback(
+    async (projectId, generationId) => {
+      updateProject(projectId, (p) => ({
+        ...p,
+        generations: p.generations.map((g) => (g.id === generationId ? { ...g, status: 'cancelled' } : g)),
+      }))
+      try {
+        await api.cancelGenerate({ projectId, generationId })
+      } catch {
+        /* best-effort — local state already reflects the cancellation */
+      }
+    },
+    [updateProject],
+  )
+
   // Recovery path for a pending generation that outlived the tab (refresh, G12):
   // re-fetch the project from the backend, which is the source of truth for status.
   const refreshProject = useCallback(async (id) => {
@@ -329,6 +349,35 @@ export function ProjectsProvider({ children }) {
     [updateProject],
   )
 
+  // Same client-visible cancellation approach as cancelGeneration, scoped to
+  // a single checklist item's image instead of the main feed entry.
+  const cancelItemImage = useCallback(
+    async (projectId, generationId, itemId) => {
+      updateProject(projectId, (p) => ({
+        ...p,
+        generations: p.generations.map((g) =>
+          g.id !== generationId
+            ? g
+            : {
+                ...g,
+                analysis: {
+                  ...g.analysis,
+                  items: g.analysis.items.map((it) =>
+                    it.id === itemId ? { ...it, itemImage: { ...it.itemImage, status: 'cancelled' } } : it,
+                  ),
+                },
+              },
+        ),
+      }))
+      try {
+        await api.cancelItemImage({ projectId, generationId, itemId })
+      } catch {
+        /* best-effort — local state already reflects the cancellation */
+      }
+    },
+    [updateProject],
+  )
+
   const value = {
     projects: Object.values(byId).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
     getProject: (id) => byId[id] ?? null,
@@ -339,8 +388,10 @@ export function ProjectsProvider({ children }) {
     undoDelete,
     duplicateProject,
     runGeneration,
+    cancelGeneration,
     runAnalysis,
     runItemImage,
+    cancelItemImage,
     refreshProject,
     syncState,
   }

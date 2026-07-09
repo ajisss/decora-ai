@@ -25,8 +25,6 @@ app.use('/api/prompt', promptRouter)
 app.use('/api/item-image', itemImageRouter)
 
 app.use('/images', express.static(path.join(DATA_DIR, 'images')))
-// Served publicly so a configured PUBLIC_BASE_URL lets kie.ai's image-to-image
-// model fetch a wizard-uploaded reference (see generate.js publicUrlFor).
 app.use('/uploads', express.static(path.join(DATA_DIR, 'uploads')))
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
