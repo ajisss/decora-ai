@@ -1,3 +1,15 @@
+import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
+
+function HeroCta({ label }) {
+  const { user } = useAuth()
+  return (
+    <Link to={user ? '/projects/new' : '/login'} state={user ? undefined : { from: '/projects/new' }} className="btn-primary w-full sm:w-auto">
+      {label}
+    </Link>
+  )
+}
+
 export default function Hero({ data }) {
   return (
     <section id="top" className="relative overflow-hidden bg-paper-soft">
@@ -19,9 +31,9 @@ export default function Hero({ data }) {
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a href="#generator" className="btn-primary w-full sm:w-auto">
-              {data.ctaPrimary}
-            </a>
+            {/* CTA utama masuk ke aplikasi (uiuxcontext §9) — gate login yang
+                mengarahkan user baru ke daftar/masuk lalu lanjut ke wizard. */}
+            <HeroCta label={data.ctaPrimary} />
             <a href="#portofolio" className="btn-ghost w-full sm:w-auto">
               {data.ctaSecondary}
             </a>

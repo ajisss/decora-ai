@@ -1,372 +1,506 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { content } from '../content.js'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import AppShell from '../components/shell/AppShell.jsx'
 import { StepIcon } from '../components/icons.jsx'
-import ReferenceImageInput from '../components/generator/ReferenceImageInput.jsx'
-import ResultTile from '../components/generator/ResultTile.jsx'
+import GenerationEntry from '../components/generator/GenerationEntry.jsx'
+import AnalyzePanel from '../components/analyzer/AnalyzePanel.jsx'
+import ExportDialog from '../components/export/ExportDialog.jsx'
+import { downloadPng } from '../components/export/buildBriefPdf.js'
+import { useProjects } from '../context/ProjectsContext.jsx'
+import { useToast } from '../components/ui/Toast.jsx'
+import EmptyState from '../components/ui/EmptyState.jsx'
+import { content } from '../content.js'
 
-// Workspace ala "AI tool": sidebar ikon kiri, canvas jadi feed generate
-// (tiap generate nambah entry baru: timestamp + prompt + status/hasil),
-// bottom bar buat nulis prompt, panel kanan (Contoh/Riwayat). Tetap tema
-// terang konsisten dengan landing — cuma layout yang diadopsi.
-// Simulasi — belum ada AI riil, generate cuma menunda lalu render placeholder.
+const t = content.app.studio
+const tc = content.app.compare
+
+// Per-project feed scroll offsets, kept for the life of the tab so navigating
+// away and back (wireflow §7 scroll restoration) doesn't dump the user at the top.
+const feedScrollMemory = new Map()
+
 export default function StudioPage() {
+  const { projectId } = useParams()
   const { state } = useLocation()
-  const g = content.generator
-  const s = content.studio
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const { getProject, runGeneration, refreshProject, updateProject } = useProjects()
+  const { showToast } = useToast()
+  const project = getProject(projectId)
 
-  const [prompt, setPrompt] = useState(state?.prompt ?? '')
-  const [reference, setReference] = useState(state?.reference ?? null)
-  const [entries, setEntries] = useState([]) // {id, prompt, timestamp, status, percent, seed}
-  const [lightboxSeed, setLightboxSeed] = useState(null)
-  const [rightTab, setRightTab] = useState('explore') // explore | history
-  const [mobilePanel, setMobilePanel] = useState(false)
-  const nextId = useRef(0)
-  const nextSeed = useRef(0)
-  const percentTimer = useRef(null)
-  const doneTimer = useRef(null)
+  const [note, setNote] = useState('')
+  const [rightTab, setRightTab] = useState('setup')
+  // Store ids, not the generation objects themselves — the objects go stale
+  // the moment context updates (e.g. an item-image finishing while the panel
+  // is open), so panels must always look the current one up live by id.
+  const [lightboxId, setLightboxId] = useState(null)
+  const [analyzeTargetId, setAnalyzeTargetId] = useState(null)
+  const [exportTargetId, setExportTargetId] = useState(null)
+  const [referenceEntry, setReferenceEntry] = useState(null)
+  const [compareIds, setCompareIds] = useState([]) // maks 2 id desain untuk dibandingkan
+  const [compareOpen, setCompareOpen] = useState(false)
+  const [flashId, setFlashId] = useState(null)
+  const [announcement, setAnnouncement] = useState('')
+  const autorunFired = useRef(false)
+  const mainRef = useRef(null)
+  const entryRefs = useRef(new Map())
+  const prevGenerationCount = useRef(null)
+  const genParamHandled = useRef(false)
+  const prevStatuses = useRef(new Map())
+  // Generations already pending when this tab opened (e.g. a refresh mid-generation,
+  // wireflow §5.3) — these outlived their originating fetch and need recovery polling,
+  // as opposed to ones this tab itself just started via runGeneration.
+  const [orphanedPendingIds] = useState(
+    () => new Set((project?.generations ?? []).filter((g) => g.status === 'pending').map((g) => g.id)),
+  )
 
-  const isGenerating = entries.some((e) => e.status === 'loading')
+  const generations = project?.generations ?? []
+  const isPending = generations.some((g) => g.status === 'pending')
+  const lightbox = generations.find((g) => g.id === lightboxId) ?? null
+  const analyzeTarget = generations.find((g) => g.id === analyzeTargetId) ?? null
+  const exportTarget = generations.find((g) => g.id === exportTargetId) ?? null
+  const latestDoneId = generations.find((g) => g.status === 'done')?.id ?? null
 
-  // Autorun saat halaman dibuka dari teaser. Timer dimiliki oleh efek ini
-  // sendiri (bukan lewat ref bersama) supaya cleanup React StrictMode
-  // (setup -> cleanup -> setup di dev) membatalkan & membuat ulang timer
-  // dengan benar, alih-alih meninggalkan status macet di "loading".
+  const scrollToEntry = (id) => {
+    entryRefs.current.get(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setFlashId(id)
+    setTimeout(() => setFlashId((f) => (f === id ? null : f)), 600)
+  }
+
   useEffect(() => {
-    if (!state?.autorun) return
-    runGenerate(state?.prompt ?? '')
+    if (!project || !state?.autorun || autorunFired.current) return
+    autorunFired.current = true
+    runGeneration(project.id, { prompt: project.prompt })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.id])
+
+  useEffect(() => {
+    if (!project || orphanedPendingIds.size === 0) return
+    const stillPending = () =>
+      project.generations.some((g) => orphanedPendingIds.has(g.id) && g.status === 'pending')
+    if (!stillPending()) return
+    const t = setInterval(() => {
+      if (!stillPending()) return clearInterval(t)
+      refreshProject(project.id)
+    }, 5000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.generations])
+
+  useEffect(() => {
+    if (!lightbox) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') return setLightboxId(null)
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      const doneEntries = generations.filter((g) => g.status === 'done')
+      const i = doneEntries.findIndex((g) => g.id === lightbox.id)
+      if (i === -1) return
+      const next = e.key === 'ArrowRight' ? doneEntries[i - 1] : doneEntries[i + 1] // feed is newest-first
+      if (next) setLightboxId(next.id)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightbox, generations])
+
+  useEffect(() => {
+    if (state?.setupUpdated) showToast(t.setupUpdated)
+    if (state?.autorun) showToast(t.projectSaved)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // T5: restore this project's feed scroll offset on mount, save it on the way out.
   useEffect(() => {
-    if (lightboxSeed === null) return
-    const onKey = (e) => e.key === 'Escape' && setLightboxSeed(null)
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [lightboxSeed])
+    const el = mainRef.current
+    if (!el) return
+    el.scrollTop = feedScrollMemory.get(projectId) ?? 0
+    return () => feedScrollMemory.set(projectId, el.scrollTop)
+  }, [projectId])
 
-  useEffect(
-    () => () => {
-      clearInterval(percentTimer.current)
-      clearTimeout(doneTimer.current)
-    },
-    [],
-  )
+  // T5: a newly inserted entry only pulls the feed to the top if the user was
+  // already reading near the top — never yank scroll from someone reviewing history.
+  useEffect(() => {
+    const el = mainRef.current
+    if (!el) return
+    if (prevGenerationCount.current !== null && generations.length > prevGenerationCount.current) {
+      if (el.scrollTop <= 100) el.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    prevGenerationCount.current = generations.length
+  }, [generations.length])
 
-  const runGenerate = (promptAtRun) => {
-    const id = nextId.current
-    nextId.current += 1
-    const entry = { id, prompt: promptAtRun, timestamp: new Date(), status: 'loading', percent: 0, seed: null }
-    setEntries((es) => [entry, ...es])
+  // Q2: aria-live announcements for the generation lifecycle (ux-spec §12).
+  useEffect(() => {
+    generations.forEach((g, i) => {
+      const versionNumber = generations.length - i
+      const prev = prevStatuses.current.get(g.id)
+      if (prev === undefined && g.status === 'pending') {
+        setAnnouncement(`${t.generatingElapsed} ${versionNumber}…`)
+      } else if (prev === 'pending' && g.status === 'done') {
+        setAnnouncement(`${t.design} ${versionNumber}: ${t.designReady}`)
+        showToast(t.designReady)
+      } else if (prev === 'pending' && g.status === 'error') {
+        setAnnouncement(`${t.design} ${versionNumber}: ${t.designFailed}`)
+      }
+      prevStatuses.current.set(g.id, g.status)
+    })
+  }, [generations])
 
-    clearInterval(percentTimer.current)
-    clearTimeout(doneTimer.current)
+  // T3: ?gen=:id deep link scrolls to and flashes that entry once it's rendered; invalid ids are ignored.
+  useEffect(() => {
+    const genId = searchParams.get('gen')
+    if (!genId || genParamHandled.current || !generations.some((g) => g.id === genId)) return
+    genParamHandled.current = true
+    const t = setTimeout(() => scrollToEntry(genId), 50)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generations, searchParams])
 
-    percentTimer.current = setInterval(() => {
-      setEntries((es) =>
-        es.map((e) => (e.id === id && e.status === 'loading' ? { ...e, percent: Math.min(95, e.percent + 12) } : e)),
-      )
-    }, 150)
-
-    doneTimer.current = setTimeout(() => {
-      clearInterval(percentTimer.current)
-      const seed = nextSeed.current
-      nextSeed.current += 1
-      setEntries((es) => es.map((e) => (e.id === id ? { ...e, status: 'done', percent: 100, seed } : e)))
-    }, 1300)
+  if (!project) {
+    return (
+      <AppShell>
+        <div className="flex h-[70vh] flex-col items-center justify-center gap-4 text-center">
+          <h1 className="font-display text-2xl text-ink">{t.notFound}</h1>
+          <Link to="/projects" className="btn-primary">
+            {t.backToProjects}
+          </Link>
+        </div>
+      </AppShell>
+    )
   }
 
-  const generate = () => runGenerate(prompt)
+  const versionOf = (entry) => generations.length - generations.indexOf(entry)
 
-  const addChip = (chip) => {
-    setPrompt((p) => (p ? `${p}, ${chip}` : chip))
+  const handleGenerate = () => {
+    if (isPending) return
+    runGeneration(project.id, {
+      prompt: project.prompt,
+      modificationNote: note,
+      referenceGenerationImageId: referenceEntry?.imageId,
+    })
+    setNote('')
   }
 
-  const useExamplePrompt = (item) => {
-    setPrompt(item.prompt.replace(/^"|"$/g, ''))
-    setMobilePanel(false)
+  const handleRetry = (entry) => {
+    if (isPending) return
+    runGeneration(project.id, { prompt: entry.prompt, referenceGenerationImageId: referenceEntry?.imageId })
   }
+
+  // R4: only one reference at a time; picking a new one silently replaces the old.
+  const handleUseAsReference = (entry) =>
+    setReferenceEntry((current) => (current?.id === entry.id ? null : entry))
+
+  const handleToggleFavorite = (entry) =>
+    updateProject(project.id, (p) => ({
+      ...p,
+      generations: p.generations.map((g) => (g.id === entry.id ? { ...g, favorite: !g.favorite } : g)),
+    }))
+
+  // M5: pilih maksimal 2 desain; memilih yang ke-2 langsung membuka perbandingan.
+  const handleToggleCompare = (entry) =>
+    setCompareIds((ids) => {
+      if (ids.includes(entry.id)) return ids.filter((id) => id !== entry.id)
+      const next = [...ids, entry.id].slice(-2)
+      if (next.length === 2) setCompareOpen(true)
+      return next
+    })
+
+  const compareEntries = compareIds
+    .map((id) => generations.find((g) => g.id === id))
+    .filter(Boolean)
 
   return (
-    <div className="flex h-screen flex-col bg-paper">
-      {/* Top bar */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-paper-line bg-paper px-4">
-        <Link to="/" className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
-          <span className="text-clay">✦</span>
-          {content.brand}
-        </Link>
-        <div className="flex items-center gap-3">
-          <span className="rounded-full bg-clay-soft px-3 py-1 text-xs font-semibold text-clay-deep">
-            {s.badge}
-          </span>
-          <button
-            type="button"
-            onClick={() => setMobilePanel(true)}
-            className="rounded-full border border-paper-line px-3 py-1.5 text-xs font-medium text-ink-soft lg:hidden"
-          >
-            {s.tabs.explore} & {s.tabs.history}
-          </button>
-        </div>
-      </header>
-
-      <div className="flex min-h-0 flex-1">
-        {/* Sidebar */}
-        <aside className="hidden w-16 shrink-0 flex-col items-center gap-2 border-r border-paper-line bg-paper-soft py-4 md:flex">
-          <SidebarIcon icon="home" label={s.sidebar.home} as={Link} to="/" />
-          <SidebarIcon icon="spark" label={s.sidebar.generate} active />
-          <SidebarIcon
-            icon="history"
-            label={s.sidebar.history}
-            onClick={() => setMobilePanel(true)}
-            className="lg:hidden"
-          />
-        </aside>
-
-        {/* Canvas (feed) + bottom bar */}
+    <AppShell projectName={project.name}>
+      <div role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
+      <div className="flex h-[calc(100vh-56px)]">
         <div className="flex min-h-0 flex-1 flex-col">
-          <main className="relative flex-1 overflow-y-auto p-6">
-            {entries.length === 0 ? (
-              <div className="flex h-full items-center justify-center">
-                <div className="max-w-md text-center">
-                  <h1 className="font-display text-2xl font-semibold leading-snug text-ink md:text-3xl">
-                    {s.canvasIdleTitle}
-                  </h1>
-                  <p className="mt-3 text-ink-muted">{s.canvasIdleHint}</p>
-                </div>
+          <main ref={mainRef} className="flex-1 overflow-y-auto p-6">
+            <div className="mx-auto mb-6 flex max-w-[720px] items-center justify-between">
+              <div>
+                <h1 className="font-display text-xl font-semibold text-ink">{project.name}</h1>
+                <p className="text-xs text-ink-muted">
+                  {generations.length} {t.design.toLowerCase()} ·{' '}
+                  {new Date(project.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            {generations.length === 0 ? (
+              <div className="flex items-center justify-center py-10">
+                <EmptyState illustration="canvas" title={t.emptyTitle} body={t.emptyBody} />
               </div>
             ) : (
-              <div className="mx-auto max-w-xl">
-                {entries.map((entry, i) => (
-                  <FeedEntry
+              <div className="mx-auto max-w-[720px] space-y-4">
+                {generations.map((entry, i) => (
+                  <div
                     key={entry.id}
-                    entry={entry}
-                    isLatest={i === 0}
-                    g={g}
-                    onOpenLightbox={setLightboxSeed}
-                  />
+                    ref={(el) => {
+                      if (el) entryRefs.current.set(entry.id, el)
+                      else entryRefs.current.delete(entry.id)
+                    }}
+                    className={`rounded-xl2 transition-shadow ${
+                      flashId === entry.id ? 'ring-2 ring-clay' : ''
+                    }`}
+                  >
+                    <GenerationEntry
+                      entry={entry}
+                      index={i}
+                      total={generations.length}
+                      onOpenLightbox={(g) => setLightboxId(g.id)}
+                      onAnalyze={(g) => setAnalyzeTargetId(g.id)}
+                      onExport={(g) => setExportTargetId(g.id)}
+                      onRetry={handleRetry}
+                      onUseAsReference={handleUseAsReference}
+                      isReference={referenceEntry?.id === entry.id}
+                      isLatestDone={entry.id === latestDoneId}
+                      onToggleFavorite={handleToggleFavorite}
+                      onToggleCompare={handleToggleCompare}
+                      isCompareSelected={compareIds.includes(entry.id)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
           </main>
 
-          {/* Bottom prompt bar */}
-          <div className="shrink-0 border-t border-paper-line bg-white p-4">
-            <div className="mx-auto max-w-3xl">
-              <textarea
-                rows={2}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={g.placeholder}
-                className="w-full resize-none rounded-lg border border-paper-line bg-paper-soft px-4 py-3 text-[15px] leading-relaxed text-ink placeholder:text-ink-muted/70 focus:border-clay focus:bg-white focus:outline-none focus:ring-2 focus:ring-clay/20"
-              />
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <ReferenceImageInput value={reference} onChange={setReference} compact />
-                  {g.chips.map((chip) => (
-                    <button
-                      key={chip}
-                      type="button"
-                      onClick={() => addChip(chip)}
-                      className="rounded-full border border-paper-line bg-paper-soft px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-clay/40 hover:text-clay-deep"
-                    >
-                      + {chip}
+          {compareIds.length > 0 && !compareOpen && (
+            <div className="shrink-0 border-t border-paper-line bg-clay-soft px-3 py-2">
+              <div className="mx-auto flex max-w-[720px] items-center justify-between gap-2 text-sm text-clay-deep">
+                <span>{tc.bar(compareIds.length)}</span>
+                <div className="flex gap-2">
+                  {compareIds.length === 2 && (
+                    <button type="button" onClick={() => setCompareOpen(true)} className="btn-primary !px-3 !py-1.5 text-xs">
+                      {tc.open}
                     </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={generate}
-                  disabled={isGenerating}
-                  className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Spinner /> Meracik…
-                    </>
-                  ) : (
-                    <>
-                      <StepIcon name="spark" className="h-4 w-4" />
-                      {entries.length > 0 ? g.regenerate : g.button}
-                    </>
                   )}
-                </button>
+                  <button type="button" onClick={() => setCompareIds([])} className="btn-ghost !px-3 !py-1.5 text-xs">
+                    {tc.clear}
+                  </button>
+                </div>
               </div>
-              <p className="mt-2 text-xs text-ink-muted">{g.note}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right panel (desktop) */}
-        <aside className="hidden w-[340px] shrink-0 flex-col border-l border-paper-line bg-paper-soft lg:flex">
-          <RightPanel
-            rightTab={rightTab}
-            setRightTab={setRightTab}
-            entries={entries}
-            onUseExample={useExamplePrompt}
-            s={s}
-          />
-        </aside>
-      </div>
-
-      {/* Right panel (mobile overlay) */}
-      {mobilePanel && (
-        <div className="fixed inset-0 z-[90] flex justify-end bg-ink/40 lg:hidden" onClick={() => setMobilePanel(false)}>
-          <div
-            className="flex h-full w-full max-w-sm flex-col bg-paper-soft"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex h-14 shrink-0 items-center justify-between border-b border-paper-line px-4">
-              <span className="text-sm font-semibold text-ink">{s.tabs.explore} & {s.tabs.history}</span>
-              <button onClick={() => setMobilePanel(false)} aria-label="Tutup" className="text-ink-muted hover:text-ink">
-                <StepIcon name="close" className="h-5 w-5" />
-              </button>
-            </div>
-            <RightPanel
-              rightTab={rightTab}
-              setRightTab={setRightTab}
-              entries={entries}
-              onUseExample={useExamplePrompt}
-              s={s}
-            />
-          </div>
-        </div>
-      )}
-
-      {lightboxSeed !== null && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setLightboxSeed(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/70 p-6 backdrop-blur-sm"
-        >
-          <button
-            onClick={() => setLightboxSeed(null)}
-            aria-label="Tutup"
-            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-          >
-            <StepIcon name="close" className="h-5 w-5" />
-          </button>
-          <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <ResultTile seed={lightboxSeed} />
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function FeedEntry({ entry, isLatest, g, onOpenLightbox }) {
-  return (
-    <div className="border-b border-paper-line py-5 first:pt-0">
-      <p className="text-xs text-ink-muted">{formatTimestamp(entry.timestamp)}</p>
-      <p className="mt-1 text-[15px] font-medium text-ink">{entry.prompt || '(tanpa prompt)'}</p>
-
-      {entry.status === 'loading' ? (
-        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-paper-line bg-paper-soft px-3 py-1.5 text-xs font-medium text-ink-soft">
-          <Spinner /> Generating {entry.percent}%
-        </div>
-      ) : (
-        <>
-          <button
-            type="button"
-            onClick={() => onOpenLightbox(entry.seed)}
-            className="group relative mt-3 block w-48 overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
-            aria-label="Perbesar hasil generate"
-          >
-            <ResultTile seed={entry.seed} />
-            <span className="absolute inset-0 flex items-center justify-center bg-ink/0 transition-colors group-hover:bg-ink/25">
-              <span className="flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-ink opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
-                <StepIcon name="preview" className="h-3 w-3" /> Perbesar
-              </span>
-            </span>
-          </button>
-
-          {isLatest && (
-            <div className="mt-4 max-w-md rounded-xl2 border border-clay/25 bg-clay-soft px-5 py-4">
-              <p className="text-sm text-ink-soft">{g.resultHint}</p>
-              <a href="#generator" className="btn-primary mt-3 w-full">
-                {g.upgradeCta} <StepIcon name="arrow" className="h-4 w-4" />
-              </a>
             </div>
           )}
-        </>
-      )}
-    </div>
-  )
-}
 
-function formatTimestamp(date) {
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-}
-
-function RightPanel({ rightTab, setRightTab, entries, onUseExample, s }) {
-  const gallery = content.gallery
-  const done = entries.filter((e) => e.status === 'done')
-  return (
-    <>
-      <div className="flex shrink-0 gap-1 border-b border-paper-line p-3">
-        <TabButton active={rightTab === 'explore'} onClick={() => setRightTab('explore')}>
-          {s.tabs.explore}
-        </TabButton>
-        <TabButton active={rightTab === 'history'} onClick={() => setRightTab('history')}>
-          {s.tabs.history}
-        </TabButton>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-3">
-        {rightTab === 'explore' && (
-          <>
-            <p className="mb-3 px-1 text-xs text-ink-muted">{s.exploreHint}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {gallery.items.map((item, i) => (
-                <button
-                  key={item.tag}
-                  type="button"
-                  onClick={() => onUseExample(item)}
-                  className="group overflow-hidden rounded-lg border border-paper-line bg-white text-left"
-                >
-                  <ExampleThumb seed={i} />
-                  <span className="block truncate px-2 py-1.5 text-xs font-medium text-ink-soft group-hover:text-clay-deep">
-                    {item.tag}
-                  </span>
-                </button>
-              ))}
+          <div className="shrink-0 border-t border-paper-line bg-paper p-3">
+            <div className="mx-auto flex max-w-[720px] items-end gap-2">
+              {referenceEntry && (
+                <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">
+                  <img
+                    src={`/images/${referenceEntry.imageId}`}
+                    alt=""
+                    className="h-7 w-7 rounded-full object-cover"
+                  />
+                  <span className="text-xs text-ink-soft">{t.refChip} {versionOf(referenceEntry)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setReferenceEntry(null)}
+                    className="text-ink-muted hover:text-ink"
+                    aria-label={t.removeRef}
+                  >
+                    <StepIcon name="close" className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+              <textarea
+                rows={1}
+                value={note}
+                onChange={(e) => setNote(e.target.value.slice(0, 300))}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleGenerate()
+                }}
+                placeholder={t.composerPlaceholder}
+                className="max-h-24 flex-1 resize-none rounded-lg border border-paper-line bg-paper-soft px-3 py-2.5 text-sm focus:border-clay focus:bg-white focus:outline-none focus:ring-2 focus:ring-clay/20"
+              />
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isPending}
+                className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <StepIcon name="spark" className="h-4 w-4" />
+                {isPending ? t.generating : t.generate}
+              </button>
             </div>
-          </>
-        )}
+          </div>
+        </div>
 
-        {rightTab === 'history' && (
-          <>
-            {done.length === 0 ? (
-              <p className="px-1 py-6 text-center text-sm text-ink-muted">{s.historyEmpty}</p>
+        <aside className="hidden w-80 shrink-0 flex-col border-l border-paper-line bg-paper-soft lg:flex">
+          <div className="p-3">
+            <div className="inline-flex rounded-full border border-paper-line bg-paper p-1">
+              <TabButton active={rightTab === 'setup'} onClick={() => setRightTab('setup')}>
+                {t.tabSetup}
+              </TabButton>
+              <TabButton active={rightTab === 'history'} onClick={() => setRightTab('history')}>
+                {t.tabHistory}
+              </TabButton>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            {rightTab === 'setup' ? (
+              <div className="space-y-4">
+                <dl className="space-y-3 rounded-xl2 border border-paper-line bg-paper p-4 text-sm">
+                  {[
+                    [t.setupTheme, project.setup.theme],
+                    [t.setupStyle, project.setup.style || '—'],
+                    [t.setupVenue, project.setup.venueType],
+                    [t.setupSize, project.setup.venueSize],
+                    [t.setupGuests, project.setup.guestCapacity],
+                    [t.setupBudget, project.setup.budgetTier],
+                    [t.setupPalette, project.setup.colorPalette?.join(', ') || '—'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex items-start justify-between gap-3">
+                      <dt className="shrink-0 text-xs text-ink-muted">{label}</dt>
+                      <dd className="text-right font-medium text-ink-soft">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <button
+                  type="button"
+                  onClick={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
+                  className="btn-ghost w-full !py-2 text-sm"
+                >
+                  <StepIcon name="pencil" className="h-3.5 w-3.5" />
+                  {t.editSetup}
+                </button>
+              </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {done.map((h) => (
-                  <div key={h.id} className="overflow-hidden rounded-lg border border-paper-line bg-white">
-                    <ResultTile seed={h.seed} />
-                    <span className="block truncate px-2 py-1.5 text-xs text-ink-soft" title={h.prompt}>
-                      {h.prompt || '(tanpa prompt)'}
-                    </span>
-                  </div>
+              <div className="space-y-1.5">
+                {generations.length === 0 && <p className="py-4 text-center text-sm text-ink-muted">{t.historyEmpty}</p>}
+                {generations.map((g, i) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => scrollToEntry(g.id)}
+                    className="flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-paper"
+                  >
+                    {g.imageId ? (
+                      <img src={`/images/${g.imageId}`} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-paper-line">
+                        <StepIcon name="image" className="h-4 w-4 text-ink-muted" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1 text-sm text-ink">
+                        {t.design} {generations.length - i}
+                        {g.favorite && <StepIcon name="star" className="h-3 w-3 fill-clay text-clay" />}
+                      </p>
+                      <p className="truncate text-xs text-ink-muted">
+                        {new Date(g.createdAt).toLocaleTimeString('id-ID')}
+                      </p>
+                    </div>
+                  </button>
                 ))}
               </div>
             )}
-          </>
-        )}
+          </div>
+        </aside>
       </div>
-    </>
-  )
-}
 
-function ExampleThumb({ seed }) {
-  const hues = [18, 12, 28, 8, 22, 15]
-  const h = hues[seed % hues.length]
-  return (
-    <div
-      className="aspect-square"
-      style={{ background: `linear-gradient(140deg, hsl(${h} 45% 62%), hsl(${h + 12} 40% 42%))` }}
-    />
+      {lightbox && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightboxId(null)}
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-ink/90 p-6"
+        >
+          <button
+            onClick={() => setLightboxId(null)}
+            aria-label={t.lightboxClose}
+            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+          >
+            <StepIcon name="close" className="h-5 w-5" />
+          </button>
+          <img
+            src={`/images/${lightbox.imageId}`}
+            alt=""
+            className="max-h-[70vh] max-w-full rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex w-full max-w-[720px] items-center justify-between gap-3 rounded-xl2 bg-white/10 px-4 py-3 text-sm text-white"
+          >
+            <p className="truncate">
+              {t.design} {versionOf(lightbox)} · {lightbox.prompt}
+            </p>
+            <div className="flex shrink-0 gap-1">
+              <button
+                type="button"
+                onClick={() => downloadPng(lightbox, project, versionOf(lightbox))}
+                aria-label={t.lightboxDownload}
+                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/20"
+              >
+                <StepIcon name="download" className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAnalyzeTargetId(lightbox.id)
+                  setLightboxId(null)
+                }}
+                aria-label={t.lightboxAnalyze}
+                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/20"
+              >
+                <StepIcon name="checklist" className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {compareOpen && compareEntries.length === 2 && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setCompareOpen(false)}
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-ink/90 p-6"
+        >
+          <h2 className="font-display text-lg text-white">{tc.title}</h2>
+          <div className="grid w-full max-w-[1100px] grid-cols-1 gap-4 md:grid-cols-2" onClick={(e) => e.stopPropagation()}>
+            {compareEntries.map((g) => (
+              <figure key={g.id} className="overflow-hidden rounded-xl2 bg-white/5">
+                <img src={`/images/${g.imageId}`} alt="" className="aspect-[4/3] w-full object-cover" />
+                <figcaption className="px-3 py-2 text-sm text-white">
+                  {t.design} {versionOf(g)}
+                  {g.favorite && <StepIcon name="star" className="ml-1.5 inline h-3.5 w-3.5 fill-clay text-clay" />}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setCompareOpen(false)
+              setCompareIds([])
+            }}
+            className="btn-ghost"
+          >
+            {tc.close}
+          </button>
+        </div>
+      )}
+
+      <AnalyzePanel
+        projectId={project.id}
+        generation={analyzeTarget}
+        onClose={() => setAnalyzeTargetId(null)}
+        onExport={(gen) => {
+          setExportTargetId(gen.id)
+          setAnalyzeTargetId(null)
+        }}
+      />
+
+      <ExportDialog
+        project={project}
+        generation={exportTarget}
+        versionNumber={exportTarget ? versionOf(exportTarget) : 0}
+        onClose={() => setExportTargetId(null)}
+        onAnalyzeFirst={() => {
+          setAnalyzeTargetId(exportTargetId)
+          setExportTargetId(null)
+        }}
+      />
+    </AppShell>
   )
 }
 
@@ -381,29 +515,5 @@ function TabButton({ active, onClick, children }) {
     >
       {children}
     </button>
-  )
-}
-
-function SidebarIcon({ icon, label, active, as: Comp = 'button', className = '', ...props }) {
-  return (
-    <Comp
-      title={label}
-      aria-label={label}
-      className={`flex h-11 w-11 items-center justify-center rounded-xl2 transition-colors ${
-        active ? 'bg-clay text-white' : 'text-ink-muted hover:bg-white hover:text-ink'
-      } ${className}`}
-      {...props}
-    >
-      <StepIcon name={icon} className="h-5 w-5" />
-    </Comp>
-  )
-}
-
-function Spinner() {
-  return (
-    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
-      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
   )
 }

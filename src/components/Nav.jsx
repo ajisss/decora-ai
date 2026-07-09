@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { content } from '../content.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false)
+  const { user } = useAuth()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -37,9 +40,21 @@ export default function Nav() {
           ))}
         </nav>
 
-        <a href="#generator" className="btn-primary">
-          Coba
-        </a>
+        {/* CTA utama nav masuk ke aplikasi (uiuxcontext §9), bukan scroll anchor. */}
+        {user ? (
+          <Link to="/projects" className="btn-primary">
+            Buka Studio
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link to="/login" className="hidden text-sm font-medium text-ink-soft transition-colors hover:text-ink sm:block">
+              Masuk
+            </Link>
+            <Link to="/login" className="btn-primary">
+              {content.hero.ctaPrimary}
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   )

@@ -6,10 +6,16 @@ import react from '@vitejs/plugin-react'
 // never collides with another Vite project.
 const port = process.env.PORT ? Number(process.env.PORT) : 4488
 
+const apiPort = process.env.API_PORT ? Number(process.env.API_PORT) : 4489
+
 export default defineConfig({
   plugins: [react()],
   server: {
     port,
-    strictPort: false,
+    strictPort: true,
+    proxy: {
+      '/api': `http://localhost:${apiPort}`,
+      '/images': `http://localhost:${apiPort}`,
+    },
   },
 })

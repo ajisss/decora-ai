@@ -87,6 +87,98 @@ export function StepIcon({ name, className = 'h-6 w-6' }) {
         <path d="M9 2h6M5 5 3 3M19 5l2-2" />
       </>
     ),
+    folder: (
+      <path d="M3 6a1 1 0 0 1 1-1h4l2 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z" />
+    ),
+    duplicate: (
+      <>
+        <rect x="8" y="8" width="12" height="12" rx="2" />
+        <path d="M6 16H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+      </>
+    ),
+    download: (
+      <>
+        <path d="M12 3v12" />
+        <path d="M7 10l5 5 5-5" />
+        <path d="M4 20h16" />
+      </>
+    ),
+    filePdf: (
+      <>
+        <path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+        <path d="M14 3v4h4" />
+        <path d="M9 14h1.5a1.5 1.5 0 0 0 0-3H9v6M13 17v-6h1.5M13 14h1.2M17 11v6" />
+      </>
+    ),
+    checklist: (
+      <>
+        <path d="M9 6h10M9 12h10M9 18h10" />
+        <path d="m4 6 1 1 2-2" />
+        <path d="m4 12 1 1 2-2" />
+        <path d="m4 18 1 1 2-2" />
+      </>
+    ),
+    pencil: (
+      <>
+        <path d="M4 20l1-4L16 5l3 3L8 19l-4 1Z" />
+        <path d="M14 7l3 3" />
+      </>
+    ),
+    comment: (
+      <path d="M4 5h16v11H9l-5 4V5Z" />
+    ),
+    plus: <path d="M12 5v14M5 12h14" />,
+    chevronDown: <path d="m6 9 6 6 6-6" />,
+    chevronRight: <path d="m9 6 6 6-6 6" />,
+    warningTriangle: (
+      <>
+        <path d="M12 3 2 20h20L12 3Z" />
+        <path d="M12 10v4M12 17h.01" />
+      </>
+    ),
+    checkCircle: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8 12 3 3 5-6" />
+      </>
+    ),
+    external: (
+      <>
+        <path d="M14 4h6v6" />
+        <path d="M20 4 10 14" />
+        <path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6" />
+      </>
+    ),
+    star: (
+      <path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6L12 16.7 6.6 19.6l1.1-6L3.2 9.4l6.1-.8Z" />
+    ),
+    compare: (
+      <>
+        <rect x="3" y="5" width="8" height="14" rx="1.5" />
+        <rect x="13" y="5" width="8" height="14" rx="1.5" />
+      </>
+    ),
+    store: (
+      <>
+        <path d="M4 9 5.5 4h13L20 9" />
+        <path d="M4 9h16v2a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0" />
+        <path d="M5 13v7h14v-7" />
+        <path d="M10 20v-4h4v4" />
+      </>
+    ),
+    settings: (
+      <>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+      </>
+    ),
+    logout: (
+      <>
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <path d="M16 17l5-5-5-5" />
+        <path d="M21 12H9" />
+      </>
+    ),
   }
   return (
     <svg {...base} className={className} aria-hidden="true">
