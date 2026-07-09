@@ -1,3 +1,10 @@
 node_modules
 dist
 .DS_Store
+server/data
+.env
+
+# Planning/spec docs — local reference only, not part of the shipped app.
+# Root READMEs (README.md, server/README.md, src/README.md) are NOT covered
+# by this and stay tracked.
+/docs/

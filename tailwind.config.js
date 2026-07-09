@@ -21,6 +21,13 @@ export default {
           soft: '#f6e9e3',
           deep: '#9c4a2d',
         },
+        danger: {
+          DEFAULT: '#b3423a',
+          soft: '#f9e9e7',
+        },
+        success: {
+          DEFAULT: '#3d7a55',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],

@@ -18,7 +18,10 @@ export default function GeneratorTeaser() {
   }
 
   const goGenerate = () => {
-    navigate('/studio', { state: { prompt, reference, autorun: true } })
+    // Hand off into the wizard rather than bypassing it (ux-spec §4) — the
+    // wizard's structure is the product thesis, so typed effort becomes
+    // pre-filled notes instead of skipping straight to a raw prompt.
+    navigate('/projects/new', { state: { teaserNotes: prompt, teaserReference: reference } })
   }
 
   return (
