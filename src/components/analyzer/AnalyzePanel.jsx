@@ -106,24 +106,24 @@ export default function AnalyzePanel({ projectId, generation, versionNumber, onJ
         {liveMessage}
       </div>
 
-      <div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-clay-soft px-2.5 py-1 text-xs font-semibold text-clay-deep">
-            <StepIcon name="checklist" className="h-3 w-3" />
-            {t.design} {versionNumber}
-          </span>
-          {onJumpToFeed && (
-            <button
-              type="button"
-              onClick={onJumpToFeed}
-              className="inline-flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-clay-deep"
-            >
-              {t.jumpToFeed}
-              <StepIcon name="external" className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-        {!hideImage && (
+      {!hideImage && (
+        <div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-clay-soft px-2.5 py-1 text-xs font-semibold text-clay-deep">
+              <StepIcon name="checklist" className="h-3 w-3" />
+              {t.design} {versionNumber}
+            </span>
+            {onJumpToFeed && (
+              <button
+                type="button"
+                onClick={onJumpToFeed}
+                className="inline-flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-clay-deep"
+              >
+                {t.jumpToFeed}
+                <StepIcon name="external" className="h-3 w-3" />
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setZoomSrc(`/images/${generation.imageId}`)}
@@ -131,8 +131,8 @@ export default function AnalyzePanel({ projectId, generation, versionNumber, onJ
           >
             <img src={`/images/${generation.imageId}`} alt="" className="aspect-video w-full object-cover" />
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} />
 

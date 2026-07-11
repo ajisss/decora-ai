@@ -6,21 +6,25 @@ import { content } from '../../content.js'
 const t = content.app.studio
 const tc = content.app.compare
 
-// Card-style accordion trigger, matching the app's list-row treatment
-// (border, rounded, hover) instead of a bare text+chevron link.
-function AccordionTrigger({ icon, label, open, onClick }) {
+// Card-style accordion: trigger and content share one bordered container
+// (content sits directly under the trigger, split by a border-t) instead of
+// being two visually separate boxes with a gap between them.
+function Accordion({ icon, label, open, onToggle, children }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center justify-between rounded-lg border border-paper-line bg-paper-soft px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-ink/20 hover:text-ink"
-    >
-      <span className="flex items-center gap-1.5">
-        <StepIcon name={icon} className="h-3.5 w-3.5" />
-        {label}
-      </span>
-      <StepIcon name={open ? 'chevronDown' : 'chevronRight'} className="h-3.5 w-3.5 text-ink-muted" />
-    </button>
+    <div className="overflow-hidden rounded-lg border border-paper-line">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between bg-paper-soft px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+      >
+        <span className="flex items-center gap-1.5">
+          <StepIcon name={icon} className="h-3.5 w-3.5" />
+          {label}
+        </span>
+        <StepIcon name={open ? 'chevronDown' : 'chevronRight'} className="h-3.5 w-3.5 text-ink-muted" />
+      </button>
+      {open && <div className="border-t border-paper-line bg-paper p-3">{children}</div>}
+    </div>
   )
 }
 
@@ -28,8 +32,9 @@ function AccordionTrigger({ icon, label, open, onClick }) {
 // short description, and two accordions (Prompt, Analisis) rather than
 // dumping everything inline — the panel is narrow, so collapsed-by-default
 // keeps a list of favorites scannable. The Analisis accordion skips
-// AnalyzePanel's own thumbnail (hideImage) since the card already shows the
-// design above, and this list can hold many favorites at once.
+// AnalyzePanel's own thumbnail+version badge (hideImage) since the card
+// already shows the design and its version above, and this list can hold
+// many favorites at once.
 export default function FavoriteCard({ entry, versionNumber, projectId, onJumpToFeed, onExport }) {
   const [promptOpen, setPromptOpen] = useState(false)
   const [analysisOpen, setAnalysisOpen] = useState(false)
@@ -59,35 +64,25 @@ export default function FavoriteCard({ entry, versionNumber, projectId, onJumpTo
       </p>
 
       <div className="mt-3 space-y-2">
-        <div>
-          <AccordionTrigger icon="comment" label={t.prompt} open={promptOpen} onClick={() => setPromptOpen((o) => !o)} />
-          {promptOpen && (
-            <p className="mt-1.5 rounded-lg border border-paper-line bg-paper px-3 py-2 text-xs text-ink-muted">
-              {entry.prompt}
-            </p>
-          )}
-        </div>
+        <Accordion icon="comment" label={t.prompt} open={promptOpen} onToggle={() => setPromptOpen((o) => !o)}>
+          <p className="text-xs text-ink-muted">{entry.prompt}</p>
+        </Accordion>
 
-        <div>
-          <AccordionTrigger
-            icon="checklist"
-            label={t.informasiAnalysisHeading}
-            open={analysisOpen}
-            onClick={() => setAnalysisOpen((o) => !o)}
+        <Accordion
+          icon="checklist"
+          label={t.informasiAnalysisHeading}
+          open={analysisOpen}
+          onToggle={() => setAnalysisOpen((o) => !o)}
+        >
+          <AnalyzePanel
+            projectId={projectId}
+            generation={entry}
+            versionNumber={versionNumber}
+            onJumpToFeed={onJumpToFeed}
+            onExport={onExport}
+            hideImage
           />
-          {analysisOpen && (
-            <div className="mt-1.5 rounded-lg border border-paper-line bg-paper p-3">
-              <AnalyzePanel
-                projectId={projectId}
-                generation={entry}
-                versionNumber={versionNumber}
-                onJumpToFeed={onJumpToFeed}
-                onExport={onExport}
-                hideImage
-              />
-            </div>
-          )}
-        </div>
+        </Accordion>
       </div>
     </div>
   )
