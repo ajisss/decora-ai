@@ -32,6 +32,7 @@ export default function StudioPage() {
 
   const [note, setNote] = useState('')
   const [rightTab, setRightTab] = useState('informasi')
+  const [favoriteQuery, setFavoriteQuery] = useState('')
   // Store ids, not the generation objects themselves — the objects go stale
   // the moment context updates (e.g. an item-image finishing while the panel
   // is open), so panels must always look the current one up live by id.
@@ -248,6 +249,16 @@ export default function StudioPage() {
     .map((id) => generations.find((g) => g.id === id))
     .filter(Boolean)
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+
+  const favoriteEntries = generations.filter((g) => g.favorite)
+  const favoriteQueryLower = favoriteQuery.trim().toLowerCase()
+  const filteredFavorites = favoriteQueryLower
+    ? favoriteEntries.filter(
+        (g) =>
+          (g.modificationNote ?? '').toLowerCase().includes(favoriteQueryLower) ||
+          g.prompt.toLowerCase().includes(favoriteQueryLower),
+      )
+    : favoriteEntries
 
   return (
     <AppShell projectName={project.name}>
@@ -470,21 +481,38 @@ export default function StudioPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {generations.filter((g) => g.favorite).length === 0 ? (
+                {favoriteEntries.length === 0 ? (
                   <EmptyState illustration="canvas" compact title={t.favoritesEmptyTitle} body={t.favoritesEmptyBody} />
                 ) : (
-                  generations
-                    .filter((g) => g.favorite)
-                    .map((g) => (
-                      <FavoriteCard
-                        key={g.id}
-                        entry={g}
-                        versionNumber={versionOf(g)}
-                        projectId={project.id}
-                        onJumpToFeed={() => scrollToEntry(g.id)}
-                        onExport={(gen) => setExportTargetId(gen.id)}
+                  <>
+                    <div className="relative">
+                      <StepIcon
+                        name="search"
+                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted"
                       />
-                    ))
+                      <input
+                        type="text"
+                        value={favoriteQuery}
+                        onChange={(e) => setFavoriteQuery(e.target.value)}
+                        placeholder={t.favoritesSearchPlaceholder}
+                        className="h-9 w-full rounded-lg border border-paper-line bg-paper pl-9 pr-3 text-sm focus:border-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
+                      />
+                    </div>
+                    {filteredFavorites.length === 0 ? (
+                      <EmptyState illustration="canvas" compact title={t.favoritesNoMatchTitle} body={t.favoritesNoMatchBody} />
+                    ) : (
+                      filteredFavorites.map((g) => (
+                        <FavoriteCard
+                          key={g.id}
+                          entry={g}
+                          versionNumber={versionOf(g)}
+                          projectId={project.id}
+                          onJumpToFeed={() => scrollToEntry(g.id)}
+                          onExport={(gen) => setExportTargetId(gen.id)}
+                        />
+                      ))
+                    )}
+                  </>
                 )}
               </div>
             )}

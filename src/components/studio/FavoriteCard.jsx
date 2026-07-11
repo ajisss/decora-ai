@@ -6,10 +6,30 @@ import { content } from '../../content.js'
 const t = content.app.studio
 const tc = content.app.compare
 
+// Card-style accordion trigger, matching the app's list-row treatment
+// (border, rounded, hover) instead of a bare text+chevron link.
+function AccordionTrigger({ icon, label, open, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center justify-between rounded-lg border border-paper-line bg-paper-soft px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-ink/20 hover:text-ink"
+    >
+      <span className="flex items-center gap-1.5">
+        <StepIcon name={icon} className="h-3.5 w-3.5" />
+        {label}
+      </span>
+      <StepIcon name={open ? 'chevronDown' : 'chevronRight'} className="h-3.5 w-3.5 text-ink-muted" />
+    </button>
+  )
+}
+
 // One favorited design in the Studio right panel's Favorit tab: date, a
 // short description, and two accordions (Prompt, Analisis) rather than
 // dumping everything inline — the panel is narrow, so collapsed-by-default
-// keeps a list of favorites scannable.
+// keeps a list of favorites scannable. The Analisis accordion skips
+// AnalyzePanel's own thumbnail (hideImage) since the card already shows the
+// design above, and this list can hold many favorites at once.
 export default function FavoriteCard({ entry, versionNumber, projectId, onJumpToFeed, onExport }) {
   const [promptOpen, setPromptOpen] = useState(false)
   const [analysisOpen, setAnalysisOpen] = useState(false)
@@ -38,35 +58,37 @@ export default function FavoriteCard({ entry, versionNumber, projectId, onJumpTo
         {entry.modificationNote ? `↳ ${entry.modificationNote}` : tc.noNote}
       </p>
 
-      <button
-        type="button"
-        onClick={() => setPromptOpen((o) => !o)}
-        className="mt-2 flex items-center gap-1 text-xs text-ink-muted hover:text-ink"
-      >
-        <StepIcon name={promptOpen ? 'chevronDown' : 'chevronRight'} className="h-3 w-3" />
-        {t.prompt}
-      </button>
-      {promptOpen && <p className="mt-1 text-xs text-ink-muted">{entry.prompt}</p>}
-
-      <button
-        type="button"
-        onClick={() => setAnalysisOpen((o) => !o)}
-        className="mt-2 flex items-center gap-1 text-xs text-ink-muted hover:text-ink"
-      >
-        <StepIcon name={analysisOpen ? 'chevronDown' : 'chevronRight'} className="h-3 w-3" />
-        {t.informasiAnalysisHeading}
-      </button>
-      {analysisOpen && (
-        <div className="mt-2 border-t border-paper-line pt-3">
-          <AnalyzePanel
-            projectId={projectId}
-            generation={entry}
-            versionNumber={versionNumber}
-            onJumpToFeed={onJumpToFeed}
-            onExport={onExport}
-          />
+      <div className="mt-3 space-y-2">
+        <div>
+          <AccordionTrigger icon="comment" label={t.prompt} open={promptOpen} onClick={() => setPromptOpen((o) => !o)} />
+          {promptOpen && (
+            <p className="mt-1.5 rounded-lg border border-paper-line bg-paper px-3 py-2 text-xs text-ink-muted">
+              {entry.prompt}
+            </p>
+          )}
         </div>
-      )}
+
+        <div>
+          <AccordionTrigger
+            icon="checklist"
+            label={t.informasiAnalysisHeading}
+            open={analysisOpen}
+            onClick={() => setAnalysisOpen((o) => !o)}
+          />
+          {analysisOpen && (
+            <div className="mt-1.5 rounded-lg border border-paper-line bg-paper p-3">
+              <AnalyzePanel
+                projectId={projectId}
+                generation={entry}
+                versionNumber={versionNumber}
+                onJumpToFeed={onJumpToFeed}
+                onExport={onExport}
+                hideImage
+              />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -29,7 +29,7 @@ const TAXONOMY_ORDER = [
 // Inline in the Studio right-side panel — not a drawer/overlay — since
 // analyzing is a main-journey step (uiuxcontext.md §7 Canvas → Analyze →
 // Export), not a peripheral action. One generation at a time.
-export default function AnalyzePanel({ projectId, generation, versionNumber, onJumpToFeed, onExport }) {
+export default function AnalyzePanel({ projectId, generation, versionNumber, onJumpToFeed, onExport, hideImage = false }) {
   const { runAnalysis, updateProject, runItemImage, cancelItemImage } = useProjects()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -123,13 +123,15 @@ export default function AnalyzePanel({ projectId, generation, versionNumber, onJ
             </button>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setZoomSrc(`/images/${generation.imageId}`)}
-          className="mt-1.5 block w-full overflow-hidden rounded-xl2 border-2 border-clay/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
-        >
-          <img src={`/images/${generation.imageId}`} alt="" className="aspect-video w-full object-cover" />
-        </button>
+        {!hideImage && (
+          <button
+            type="button"
+            onClick={() => setZoomSrc(`/images/${generation.imageId}`)}
+            className="mt-1.5 block w-full overflow-hidden rounded-xl2 border-2 border-clay/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
+          >
+            <img src={`/images/${generation.imageId}`} alt="" className="aspect-video w-full object-cover" />
+          </button>
+        )}
       </div>
 
       <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} />
