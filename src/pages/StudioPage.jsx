@@ -5,6 +5,7 @@ import SegmentedControl from '../components/wizard/SegmentedControl.jsx'
 import { StepIcon } from '../components/icons.jsx'
 import GenerationEntry from '../components/generator/GenerationEntry.jsx'
 import AnalyzePanel from '../components/analyzer/AnalyzePanel.jsx'
+import FavoriteCard from '../components/studio/FavoriteCard.jsx'
 import ExportDialog from '../components/export/ExportDialog.jsx'
 import { downloadPng } from '../components/export/buildBriefPdf.js'
 import { useProjects } from '../context/ProjectsContext.jsx'
@@ -50,6 +51,7 @@ export default function StudioPage() {
   const mainRef = useRef(null)
   const entryRefs = useRef(new Map())
   const analysisSectionRef = useRef(null)
+  const composerRef = useRef(null)
   const prevGenerationCount = useRef(null)
   const genParamHandled = useRef(false)
   const prevStatuses = useRef(new Map())
@@ -193,7 +195,7 @@ export default function StudioPage() {
   const versionOf = (entry) => generations.length - generations.indexOf(entry)
 
   const handleGenerate = () => {
-    if (isPending) return
+    if (isPending || !note.trim()) return
     const noteAtConfirm = note
     setConfirmGenerate(() => () => {
       runGeneration(project.id, {
@@ -217,6 +219,13 @@ export default function StudioPage() {
   // R4: only one reference at a time; picking a new one silently replaces the old.
   const handleUseAsReference = (entry) =>
     setReferenceEntry((current) => (current?.id === entry.id ? null : entry))
+
+  // Reply = set as reference + jump focus straight to the composer, so
+  // adjusting off a specific design is a single click instead of two.
+  const handleReply = (entry) => {
+    setReferenceEntry(entry)
+    composerRef.current?.focus()
+  }
 
   const handleToggleFavorite = (entry) =>
     updateProject(project.id, (p) => ({
@@ -281,6 +290,7 @@ export default function StudioPage() {
                       onRetry={handleRetry}
                       onCancel={handleCancel}
                       onUseAsReference={handleUseAsReference}
+                      onReply={handleReply}
                       isReference={referenceEntry?.id === entry.id}
                       isLatestDone={entry.id === latestDoneId}
                       isBeingAnalyzed={rightTab === 'informasi' && analyzeTargetId === entry.id}
@@ -338,6 +348,7 @@ export default function StudioPage() {
                 </div>
               )}
               <textarea
+                ref={composerRef}
                 rows={1}
                 value={note}
                 onChange={(e) => setNote(e.target.value.slice(0, 300))}
@@ -350,7 +361,7 @@ export default function StudioPage() {
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isPending}
+                disabled={isPending || !note.trim()}
                 aria-label={isPending ? t.generating : t.generate}
                 title={isPending ? t.generating : t.generate}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-clay text-white transition-colors hover:bg-clay-deep disabled:cursor-not-allowed disabled:opacity-60"
@@ -374,6 +385,7 @@ export default function StudioPage() {
               options={[
                 { value: 'informasi', label: t.tabInformasi },
                 { value: 'history', label: t.tabHistory },
+                { value: 'favorit', label: t.tabFavorite },
               ]}
               value={rightTab}
               onChange={setRightTab}
@@ -427,7 +439,7 @@ export default function StudioPage() {
                   />
                 </div>
               </div>
-            ) : (
+            ) : rightTab === 'history' ? (
               <div className="space-y-1.5">
                 {generations.length === 0 && <p className="py-4 text-center text-sm text-ink-muted">{t.historyEmpty}</p>}
                 {generations.map((g, i) => (
@@ -455,6 +467,25 @@ export default function StudioPage() {
                     </div>
                   </button>
                 ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {generations.filter((g) => g.favorite).length === 0 ? (
+                  <EmptyState illustration="canvas" compact title={t.favoritesEmptyTitle} body={t.favoritesEmptyBody} />
+                ) : (
+                  generations
+                    .filter((g) => g.favorite)
+                    .map((g) => (
+                      <FavoriteCard
+                        key={g.id}
+                        entry={g}
+                        versionNumber={versionOf(g)}
+                        projectId={project.id}
+                        onJumpToFeed={() => scrollToEntry(g.id)}
+                        onExport={(gen) => setExportTargetId(gen.id)}
+                      />
+                    ))
+                )}
               </div>
             )}
           </div>

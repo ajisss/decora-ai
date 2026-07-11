@@ -32,6 +32,7 @@ export default function GenerationEntry({
   onRetry,
   onCancel,
   onUseAsReference,
+  onReply,
   isReference,
   isLatestDone,
   isBeingAnalyzed,
@@ -76,15 +77,26 @@ export default function GenerationEntry({
         </span>
         <div className="flex items-center gap-2">
           {entry.status === 'done' && (
-            <button
-              type="button"
-              onClick={() => onToggleFavorite(entry)}
-              aria-label={entry.favorite ? content.app.favorite.remove : content.app.favorite.add}
-              title={entry.favorite ? content.app.favorite.remove : content.app.favorite.add}
-              className={entry.favorite ? 'text-clay' : 'text-ink-muted hover:text-clay'}
-            >
-              <StepIcon name="star" className={`h-4 w-4 ${entry.favorite ? 'fill-clay' : ''}`} />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => onToggleFavorite(entry)}
+                aria-label={entry.favorite ? content.app.favorite.remove : content.app.favorite.add}
+                title={entry.favorite ? content.app.favorite.remove : content.app.favorite.add}
+                className={entry.favorite ? 'text-clay' : 'text-ink-muted hover:text-clay'}
+              >
+                <StepIcon name="star" className={`h-4 w-4 ${entry.favorite ? 'fill-clay' : ''}`} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onReply(entry)}
+                aria-label={t.reply}
+                title={t.reply}
+                className="text-ink-muted hover:text-clay"
+              >
+                <StepIcon name="reply" className="h-4 w-4" />
+              </button>
+            </>
           )}
           <span className="text-xs text-ink-muted" title={new Date(entry.createdAt).toLocaleString()}>
             {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
