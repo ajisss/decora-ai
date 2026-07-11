@@ -62,7 +62,7 @@ export function AuthProvider({ children }) {
     if (!session?.token) return
     api.auth
       .me()
-      .then(({ user: fresh }) => updateProfile(fresh))
+      .then(({ user: fresh }) => updateProfile({ usageGoal: fresh.usageGoal }))
       .catch((err) => {
         if (err?.code === 'unauthorized') persist(null)
       })
