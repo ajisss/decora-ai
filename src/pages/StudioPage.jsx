@@ -26,7 +26,8 @@ const feedScrollMemory = new Map()
 
 export default function StudioPage() {
   const { projectId } = useParams()
-  const { state } = useLocation()
+  const location = useLocation()
+  const { state } = location
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { getProject, runGeneration, cancelGeneration, refreshProject, updateProject } = useProjects()
@@ -104,6 +105,11 @@ export default function StudioPage() {
     if (!project || !state?.autorun || autorunFired.current) return
     autorunFired.current = true
     runGeneration(project.id, { prompt: project.prompt })
+    // `autorun` lives in window.history.state, which survives a hard refresh —
+    // clear it immediately so reloading this page doesn't re-fire the same
+    // generation (autorunFired alone isn't enough: it's an in-memory ref that
+    // resets on every fresh mount, including the one right after a refresh).
+    navigate(location.pathname + location.search, { replace: true, state: { ...state, autorun: false } })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 

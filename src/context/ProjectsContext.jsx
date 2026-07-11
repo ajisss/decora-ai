@@ -83,15 +83,20 @@ export function ProjectsProvider({ children }) {
     }, 1000)
   }, [])
 
+  // `sync: false` is for optimistic placeholders that are immediately followed
+  // by an authoritative server call (e.g. "mark pending" right before POSTing
+  // to /generate or /item-image) — syncing that placeholder would race the
+  // debounced full-project PUT against the POST's own (correct) write, and on
+  // a slow connection the stale placeholder can land last and stick forever.
   const updateProject = useCallback(
-    (id, updater) => {
+    (id, updater, { sync = true } = {}) => {
       setById((prev) => {
         const current = prev[id]
         if (!current) return prev
         const updated = { ...updater(current), updatedAt: new Date().toISOString() }
         const next = { ...prev, [id]: updated }
         writeLocal(next)
-        syncToServer(updated)
+        if (sync) syncToServer(updated)
         return next
       })
     },
@@ -182,7 +187,7 @@ export function ProjectsProvider({ children }) {
         error: null,
         analysis: null,
       }
-      updateProject(projectId, (p) => ({ ...p, generations: [optimisticEntry, ...p.generations] }))
+      updateProject(projectId, (p) => ({ ...p, generations: [optimisticEntry, ...p.generations] }), { sync: false })
 
       try {
         const { generation } = await api.generate({
@@ -296,23 +301,27 @@ export function ProjectsProvider({ children }) {
   // but scoped to a single item's itemImage field instead of the feed.
   const runItemImage = useCallback(
     async (projectId, generationId, itemId, customPrompt) => {
-      const mutateItem = (patch) =>
-        updateProject(projectId, (p) => ({
-          ...p,
-          generations: p.generations.map((g) =>
-            g.id !== generationId
-              ? g
-              : {
-                  ...g,
-                  analysis: {
-                    ...g.analysis,
-                    items: g.analysis.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)),
+      const mutateItem = (patch, opts) =>
+        updateProject(
+          projectId,
+          (p) => ({
+            ...p,
+            generations: p.generations.map((g) =>
+              g.id !== generationId
+                ? g
+                : {
+                    ...g,
+                    analysis: {
+                      ...g.analysis,
+                      items: g.analysis.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)),
+                    },
                   },
-                },
-          ),
-        }))
+            ),
+          }),
+          opts,
+        )
 
-      mutateItem({ itemImage: { status: 'pending', imageId: null, prompt: null, error: null } })
+      mutateItem({ itemImage: { status: 'pending', imageId: null, prompt: null, error: null } }, { sync: false })
 
       try {
         const { item } = await api.generateItemImage({ projectId, generationId, itemId, customPrompt })
