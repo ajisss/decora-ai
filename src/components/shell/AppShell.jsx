@@ -19,7 +19,7 @@ export default function AppShell({ projectName, children }) {
   return (
     <div className="flex h-screen bg-paper">
       <AppSidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-xl rounded-bl-xl shadow-sm shadow-ink/5">
         <header className="sticky top-0 z-40 h-14 shrink-0 border-b border-paper-line bg-paper">
           <div className="flex h-full items-center justify-between px-6">
             <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-ink-soft">
