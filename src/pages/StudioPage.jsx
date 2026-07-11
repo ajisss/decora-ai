@@ -377,7 +377,7 @@ export default function StudioPage() {
           )}
 
           <div className="shrink-0 px-4 pb-4 pt-2">
-            <div className="mx-auto flex max-w-[720px] items-end gap-2 rounded-2xl border border-paper-line bg-paper p-2 shadow-lg shadow-ink/5">
+            <div className="mx-auto flex max-w-[720px] items-center gap-2 rounded-2xl border border-paper-line bg-paper p-2 shadow-lg shadow-ink/5">
               <ReferenceImageInput value={composerImage} onChange={setComposerImage} compact />
               {referenceEntry && (
                 <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">

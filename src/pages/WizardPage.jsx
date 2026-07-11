@@ -289,7 +289,7 @@ export default function WizardPage() {
 
   return (
     <AppShell projectName={editProject?.name}>
-      <div className="mx-auto max-w-[640px] px-6 py-12">
+      <div className="mx-auto max-w-[640px] px-6 py-12 pb-6">
         <h1 className="font-display text-3xl font-semibold text-ink">
           {editProjectId ? t.editTitle : t.title}
         </h1>
@@ -390,7 +390,13 @@ export default function WizardPage() {
           />
         </div>
 
-        <div className="sticky bottom-0 mt-6 flex items-center justify-between border-t border-paper-line bg-paper py-4">
+      </div>
+
+      {/* Full-width so the footer reads as an anchored toolbar, not a floating
+          strip in the middle of a wide screen — the inner row still aligns
+          to the same column as the form above it. */}
+      <div className="sticky bottom-0 border-t border-paper-line bg-paper">
+        <div className="mx-auto flex max-w-[640px] items-center justify-between px-6 py-4">
           <button
             type="button"
             onClick={() => navigate(editProjectId ? `/studio/${editProjectId}` : '/projects')}
