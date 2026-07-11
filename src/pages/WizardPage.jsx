@@ -392,11 +392,10 @@ export default function WizardPage() {
 
       </div>
 
-      {/* Full-width so the footer reads as an anchored toolbar, not a floating
-          strip in the middle of a wide screen — the inner row still aligns
-          to the same column as the form above it. */}
+      {/* Full-width toolbar, not constrained to the form's reading column —
+          the primary CTA sits at the true right edge for max reach/weight. */}
       <div className="sticky bottom-0 border-t border-paper-line bg-paper">
-        <div className="mx-auto flex max-w-[640px] items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-6 py-4">
           <button
             type="button"
             onClick={() => navigate(editProjectId ? `/studio/${editProjectId}` : '/projects')}
