@@ -135,7 +135,8 @@ export default function AnalyzePanel({ projectId, generation, versionNumber, onJ
       <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} />
 
       {!analysis && !loading && !error && (
-        <div className="flex flex-col items-center gap-3 rounded-xl2 border border-paper-line bg-paper py-8 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-xl2 border border-paper-line bg-paper px-4 py-8 text-center">
+          <p className="text-sm text-ink-soft">{t.ctaSuggestBody}</p>
           <button type="button" onClick={analyze} className="btn-primary">
             {t.cta}
           </button>

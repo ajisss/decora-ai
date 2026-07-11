@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import AppShell from '../components/shell/AppShell.jsx'
+import SegmentedControl from '../components/wizard/SegmentedControl.jsx'
 import { StepIcon } from '../components/icons.jsx'
 import GenerationEntry from '../components/generator/GenerationEntry.jsx'
 import AnalyzePanel from '../components/analyzer/AnalyzePanel.jsx'
@@ -29,7 +30,7 @@ export default function StudioPage() {
   const project = getProject(projectId)
 
   const [note, setNote] = useState('')
-  const [rightTab, setRightTab] = useState('setup')
+  const [rightTab, setRightTab] = useState('informasi')
   // Store ids, not the generation objects themselves — the objects go stale
   // the moment context updates (e.g. an item-image finishing while the panel
   // is open), so panels must always look the current one up live by id.
@@ -39,6 +40,7 @@ export default function StudioPage() {
   const [referenceEntry, setReferenceEntry] = useState(null)
   const [compareIds, setCompareIds] = useState([]) // maks 2 id desain untuk dibandingkan
   const [compareOpen, setCompareOpen] = useState(false)
+  const [comparePct, setComparePct] = useState(50) // posisi garis before/after slider (%)
   const [flashId, setFlashId] = useState(null)
   const [announcement, setAnnouncement] = useState('')
   // Holds the action to run once the spend-confirmation dialog is accepted —
@@ -47,6 +49,7 @@ export default function StudioPage() {
   const autorunFired = useRef(false)
   const mainRef = useRef(null)
   const entryRefs = useRef(new Map())
+  const analysisSectionRef = useRef(null)
   const prevGenerationCount = useRef(null)
   const genParamHandled = useRef(false)
   const prevStatuses = useRef(new Map())
@@ -69,6 +72,22 @@ export default function StudioPage() {
     setFlashId(id)
     setTimeout(() => setFlashId((f) => (f === id ? null : f)), 600)
   }
+
+  // Informasi's Analisis section always shows a target — the Analisis CTA on a
+  // design bubble/lightbox/export just refocuses it and jumps the right panel there.
+  const focusAnalysis = (id) => {
+    setAnalyzeTargetId(id)
+    setRightTab('informasi')
+    setTimeout(() => analysisSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
+
+  useEffect(() => {
+    if (!analyzeTargetId && latestDoneId) setAnalyzeTargetId(latestDoneId)
+  }, [analyzeTargetId, latestDoneId])
+
+  useEffect(() => {
+    if (compareOpen) setComparePct(50)
+  }, [compareOpen])
 
   useEffect(() => {
     if (!project || !state?.autorun || autorunFired.current) return
@@ -214,9 +233,12 @@ export default function StudioPage() {
       return next
     })
 
+  // Sorted oldest-first regardless of click order, so the slider always reads
+  // left = before (older), right = after (newer) — not "first clicked".
   const compareEntries = compareIds
     .map((id) => generations.find((g) => g.id === id))
     .filter(Boolean)
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
 
   return (
     <AppShell projectName={project.name}>
@@ -251,7 +273,7 @@ export default function StudioPage() {
                     className={`rounded-xl2 transition-shadow ${
                       flashId === entry.id ? 'ring-2 ring-clay' : ''
                     } ${
-                      rightTab === 'analyze' && analyzeTargetId === entry.id && flashId !== entry.id
+                      rightTab === 'informasi' && analyzeTargetId === entry.id && flashId !== entry.id
                         ? 'ring-2 ring-clay/50 ring-offset-2 ring-offset-paper'
                         : ''
                     }`}
@@ -261,17 +283,14 @@ export default function StudioPage() {
                       index={i}
                       total={generations.length}
                       onOpenLightbox={(g) => setLightboxId(g.id)}
-                      onAnalyze={(g) => {
-                        setAnalyzeTargetId(g.id)
-                        setRightTab('analyze')
-                      }}
+                      onAnalyze={(g) => focusAnalysis(g.id)}
                       onExport={(g) => setExportTargetId(g.id)}
                       onRetry={handleRetry}
                       onCancel={handleCancel}
                       onUseAsReference={handleUseAsReference}
                       isReference={referenceEntry?.id === entry.id}
                       isLatestDone={entry.id === latestDoneId}
-                      isBeingAnalyzed={rightTab === 'analyze' && analyzeTargetId === entry.id}
+                      isBeingAnalyzed={rightTab === 'informasi' && analyzeTargetId === entry.id}
                       onToggleFavorite={handleToggleFavorite}
                       onToggleCompare={handleToggleCompare}
                       isCompareSelected={compareIds.includes(entry.id)}
@@ -285,7 +304,10 @@ export default function StudioPage() {
           {compareIds.length > 0 && !compareOpen && (
             <div className="shrink-0 border-t border-paper-line bg-clay-soft px-3 py-2">
               <div className="mx-auto flex max-w-[720px] items-center justify-between gap-2 text-sm text-clay-deep">
-                <span>{tc.bar(compareIds.length)}</span>
+                <span>
+                  {tc.bar(compareIds.length)}
+                  {compareIds.length === 1 && <span className="ml-1 text-clay-deep/70">· {tc.barHint}</span>}
+                </span>
                 <div className="flex gap-2">
                   {compareIds.length === 2 && (
                     <button type="button" onClick={() => setCompareOpen(true)} className="btn-primary !px-3 !py-1.5 text-xs">
@@ -345,61 +367,62 @@ export default function StudioPage() {
 
         <aside className="hidden w-96 shrink-0 flex-col border-l border-paper-line bg-paper-soft lg:flex">
           <div className="p-3">
-            <div className="inline-flex rounded-full border border-paper-line bg-paper p-1">
-              <TabButton active={rightTab === 'setup'} onClick={() => setRightTab('setup')}>
-                {t.tabSetup}
-              </TabButton>
-              <TabButton active={rightTab === 'history'} onClick={() => setRightTab('history')}>
-                {t.tabHistory}
-              </TabButton>
-              <TabButton
-                active={rightTab === 'analyze'}
-                onClick={() => {
-                  if (!analyzeTargetId && latestDoneId) setAnalyzeTargetId(latestDoneId)
-                  setRightTab('analyze')
-                }}
-              >
-                {t.tabAnalyze}
-              </TabButton>
-            </div>
+            <SegmentedControl
+              options={[
+                { value: 'informasi', label: t.tabInformasi },
+                { value: 'history', label: t.tabHistory },
+              ]}
+              value={rightTab}
+              onChange={setRightTab}
+            />
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-4">
-            {rightTab === 'analyze' ? (
-              <AnalyzePanel
-                projectId={project.id}
-                generation={analyzeTarget}
-                versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
-                onJumpToFeed={() => analyzeTarget && scrollToEntry(analyzeTarget.id)}
-                onExport={(gen) => {
-                  setExportTargetId(gen.id)
-                }}
-              />
-            ) : rightTab === 'setup' ? (
-              <div className="space-y-4">
-                <dl className="space-y-3 rounded-xl2 border border-paper-line bg-paper p-4 text-sm">
-                  {[
-                    [t.setupTheme, project.setup.theme],
-                    [t.setupStyle, project.setup.style || '—'],
-                    [t.setupVenue, project.setup.venueType],
-                    [t.setupSize, project.setup.venueSize],
-                    [t.setupGuests, project.setup.guestCapacity],
-                    [t.setupBudget, project.setup.budgetTier],
-                    [t.setupPalette, project.setup.colorPalette?.join(', ') || '—'],
-                  ].map(([label, value]) => (
-                    <div key={label} className="flex items-start justify-between gap-3">
-                      <dt className="shrink-0 text-xs text-ink-muted">{label}</dt>
-                      <dd className="text-right font-medium text-ink-soft">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <button
-                  type="button"
-                  onClick={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
-                  className="btn-ghost w-full !py-2 text-sm"
-                >
-                  <StepIcon name="pencil" className="h-3.5 w-3.5" />
-                  {t.editSetup}
-                </button>
+            {rightTab === 'informasi' ? (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted">
+                    {t.informasiDetailHeading}
+                  </p>
+                  <dl className="space-y-3 rounded-xl2 border border-paper-line bg-paper p-4 text-sm">
+                    {[
+                      [t.setupTheme, project.setup.theme],
+                      [t.setupStyle, project.setup.style || '—'],
+                      [t.setupVenue, project.setup.venueType],
+                      [t.setupSize, project.setup.venueSize],
+                      [t.setupGuests, project.setup.guestCapacity],
+                      [t.setupBudget, project.setup.budgetTier],
+                      [t.setupPalette, project.setup.colorPalette?.join(', ') || '—'],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex items-start justify-between gap-3">
+                        <dt className="shrink-0 text-xs text-ink-muted">{label}</dt>
+                        <dd className="text-right font-medium text-ink-soft">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
+                    className="btn-ghost w-full !py-2 text-sm"
+                  >
+                    <StepIcon name="pencil" className="h-3.5 w-3.5" />
+                    {t.editSetup}
+                  </button>
+                </div>
+
+                <div ref={analysisSectionRef} className="space-y-3 border-t border-paper-line pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted">
+                    {t.informasiAnalysisHeading}
+                  </p>
+                  <AnalyzePanel
+                    projectId={project.id}
+                    generation={analyzeTarget}
+                    versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
+                    onJumpToFeed={() => analyzeTarget && scrollToEntry(analyzeTarget.id)}
+                    onExport={(gen) => {
+                      setExportTargetId(gen.id)
+                    }}
+                  />
+                </div>
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -474,8 +497,7 @@ export default function StudioPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setAnalyzeTargetId(lightbox.id)
-                  setRightTab('analyze')
+                  focusAnalysis(lightbox.id)
                   setLightboxId(null)
                 }}
                 aria-label={t.lightboxAnalyze}
@@ -495,28 +517,85 @@ export default function StudioPage() {
           onClick={() => setCompareOpen(false)}
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-ink/90 p-6"
         >
-          <h2 className="font-display text-lg text-white">{tc.title}</h2>
-          <div className="grid w-full max-w-[1100px] grid-cols-1 gap-4 md:grid-cols-2" onClick={(e) => e.stopPropagation()}>
-            {compareEntries.map((g) => (
-              <figure key={g.id} className="overflow-hidden rounded-xl2 bg-white/5">
-                <img src={`/images/${g.imageId}`} alt="" className="aspect-[4/3] w-full object-cover" />
-                <figcaption className="px-3 py-2 text-sm text-white">
-                  {t.design} {versionOf(g)}
-                  {g.favorite && <StepIcon name="star" className="ml-1.5 inline h-3.5 w-3.5 fill-clay text-clay" />}
-                </figcaption>
-              </figure>
-            ))}
+          <div className="w-full max-w-[720px]" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-display text-lg text-white">{tc.title}</h2>
+            <p className="mt-1 text-sm text-white/70">{tc.hint}</p>
+
+            <div className="relative mt-4 aspect-[4/3] w-full select-none overflow-hidden rounded-xl2 bg-white/5">
+              <img
+                src={`/images/${compareEntries[0].imageId}`}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                draggable={false}
+              />
+              <div className="absolute inset-0 overflow-hidden" style={{ clipPath: `inset(0 ${100 - comparePct}% 0 0)` }}>
+                <img
+                  src={`/images/${compareEntries[1].imageId}`}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                  draggable={false}
+                />
+              </div>
+
+              <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white">
+                {tc.before} · {t.design} {versionOf(compareEntries[0])}
+              </span>
+              <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white">
+                {tc.after} · {t.design} {versionOf(compareEntries[1])}
+              </span>
+
+              <div
+                className="pointer-events-none absolute inset-y-0 w-0.5 bg-white"
+                style={{ left: `${comparePct}%` }}
+              />
+              <div
+                className="pointer-events-none absolute top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-sm"
+                style={{ left: `${comparePct}%` }}
+              >
+                <StepIcon name="compare" className="h-4 w-4 text-ink" />
+              </div>
+
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={comparePct}
+                onChange={(e) => setComparePct(Number(e.target.value))}
+                aria-label={tc.hint}
+                className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0"
+              />
+            </div>
+
+            <div className="mt-4 rounded-xl2 bg-white/5 p-4 text-white">
+              <p className="text-sm font-semibold">{tc.diffTitle}</p>
+              <div className="mt-2 grid grid-cols-2 gap-4">
+                {compareEntries.map((g, i) => (
+                  <div key={g.id}>
+                    <p className="flex items-center gap-1 text-xs text-white/60">
+                      {i === 0 ? tc.before : tc.after} · {t.design} {versionOf(g)}
+                      {g.favorite && <StepIcon name="star" className="h-3 w-3 fill-clay text-clay" />}
+                    </p>
+                    <p className="mt-1 text-sm text-white/90">
+                      {g.modificationNote ? `↳ ${g.modificationNote}` : tc.noNote}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setCompareOpen(false)
+                  setCompareIds([])
+                }}
+                className="btn-ghost"
+              >
+                {tc.close}
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setCompareOpen(false)
-              setCompareIds([])
-            }}
-            className="btn-ghost"
-          >
-            {tc.close}
-          </button>
         </div>
       )}
 
@@ -526,8 +605,7 @@ export default function StudioPage() {
         versionNumber={exportTarget ? versionOf(exportTarget) : 0}
         onClose={() => setExportTargetId(null)}
         onAnalyzeFirst={() => {
-          setAnalyzeTargetId(exportTargetId)
-          setRightTab('analyze')
+          focusAnalysis(exportTargetId)
           setExportTargetId(null)
         }}
       />
@@ -541,19 +619,5 @@ export default function StudioPage() {
         confirmLabel={t.confirmGenerateCta}
       />
     </AppShell>
-  )
-}
-
-function TabButton({ active, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-        active ? 'bg-white text-ink shadow-sm ring-1 ring-paper-line' : 'text-ink-muted hover:text-ink'
-      }`}
-    >
-      {children}
-    </button>
   )
 }

@@ -44,7 +44,19 @@ export default function GenerationEntry({
   const [promptOpen, setPromptOpen] = useState(false)
 
   return (
-    <div className="rounded-xl2 border border-paper-line bg-paper p-4">
+    <div className="space-y-2">
+      {entry.modificationNote && (
+        <div className="flex justify-end">
+          <div className="max-w-[85%] rounded-2xl rounded-br-md bg-clay px-4 py-2.5 text-sm text-white sm:max-w-[70%]">
+            {entry.modificationNote}
+          </div>
+        </div>
+      )}
+      <div className="flex items-start gap-2">
+        <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-clay-soft text-clay-deep">
+          <StepIcon name="spark" className="h-3.5 w-3.5" />
+        </span>
+        <div className="min-w-0 flex-1 rounded-xl2 rounded-tl-md border border-paper-line bg-paper p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
           {t.design} {versionNumber}
@@ -110,9 +122,6 @@ export default function GenerationEntry({
               className="aspect-[4/3] w-full object-cover"
             />
           </button>
-          {entry.modificationNote && (
-            <p className="mt-2 text-sm italic text-ink-muted">↳ {entry.modificationNote}</p>
-          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {/* uiuxcontext §5.6: satu aksi utama per layar — Analisis di desain
                 terbaru tampil sebagai tombol primer, sisanya ghost. */}
@@ -179,6 +188,8 @@ export default function GenerationEntry({
         {t.prompt}
       </button>
       {promptOpen && <p className="mt-1 text-xs text-ink-muted">{entry.prompt}</p>}
+        </div>
+      </div>
     </div>
   )
 }
