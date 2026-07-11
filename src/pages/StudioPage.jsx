@@ -13,6 +13,8 @@ import { useProjects } from '../context/ProjectsContext.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import ReferenceImageInput from '../components/generator/ReferenceImageInput.jsx'
+import { api } from '../api/client.js'
 import { content } from '../content.js'
 
 const t = content.app.studio
@@ -32,6 +34,7 @@ export default function StudioPage() {
   const project = getProject(projectId)
 
   const [note, setNote] = useState('')
+  const [composerImage, setComposerImage] = useState(null) // data URL — freshly uploaded reference, distinct from "Jadikan referensi" on a past design
   const [rightTab, setRightTab] = useState('informasi')
   const [favoriteQuery, setFavoriteQuery] = useState('')
   // Store ids, not the generation objects themselves — the objects go stale
@@ -203,13 +206,24 @@ export default function StudioPage() {
   const handleGenerate = () => {
     if (isPending || !note.trim()) return
     const noteAtConfirm = note
-    setConfirmGenerate(() => () => {
+    const imageAtConfirm = composerImage
+    setConfirmGenerate(() => async () => {
+      let referenceImageId
+      if (imageAtConfirm) {
+        try {
+          ;({ referenceImageId } = await api.upload(imageAtConfirm))
+        } catch {
+          /* upload failure: proceed without it rather than blocking generation */
+        }
+      }
       runGeneration(project.id, {
         prompt: project.prompt,
         modificationNote: noteAtConfirm,
+        referenceImageId,
         referenceGenerationImageId: referenceEntry?.imageId,
       })
       setNote('')
+      setComposerImage(null)
     })
   }
 
@@ -364,6 +378,7 @@ export default function StudioPage() {
 
           <div className="shrink-0 px-4 pb-4 pt-2">
             <div className="mx-auto flex max-w-[720px] items-end gap-2 rounded-2xl border border-paper-line bg-paper p-2 shadow-lg shadow-ink/5">
+              <ReferenceImageInput value={composerImage} onChange={setComposerImage} compact />
               {referenceEntry && (
                 <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">
                   <img
