@@ -13,7 +13,8 @@ server/
 │   ├── analyze.js        decoration analysis
 │   ├── itemImage.js      per-checklist-item image generation (+ /cancel)
 │   ├── uploads.js        reference image uploads
-│   └── prompt.js         prompt preview/compile
+│   ├── prompt.js         prompt preview/compile
+│   └── auth.js           register/login/Google SSO/survey
 ├── lib/               business logic, external API clients — no req/res
 │   ├── db.js             Neon connection (sql tag) + table migration (projects, generations)
 │   ├── store.js          reconstructs the project JSON from projects+generations tables; images/uploads in Vercel Blob
@@ -21,7 +22,10 @@ server/
 │   ├── vision.js         kie.ai client — decoration analysis, gemini-2.5-flash
 │   ├── mockAi.js         mock image generation (MOCK_AI=true), real photos, no cost
 │   ├── itemImage.js      per-item prompt building + mock/real dispatch
-│   └── promptTemplate.js structured wizard answers → generation prompt
+│   ├── promptTemplate.js structured wizard answers → generation prompt
+│   ├── userStore.js      users in Postgres (Neon) — same table-per-entity pattern as store.js
+│   └── auth.js           password hashing, JWT, Google ID token verification
+├── middleware/         requireAuth.js — Bearer JWT verification
 └── data/              runtime data (gitignored): mock-cache/ only
 ```
 
