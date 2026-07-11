@@ -92,18 +92,31 @@ export async function analyzeImage(imageBuffer) {
   const data = await res.json()
   const raw = data?.choices?.[0]?.message?.content
   // Despite response_format enforcing json_schema, gemini-2.5-flash sometimes
-  // still wraps its output in a markdown code fence (```json ... ```) —
-  // strip that before parsing instead of treating it as malformed.
-  const cleaned = raw?.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
-  try {
-    const parsed = JSON.parse(cleaned)
-    // Normalize the empty-string convention back to null for the app's data model.
-    parsed.items = (parsed.items ?? []).map((item) => ({
-      ...item,
-      estimatedQuantity: item.estimatedQuantity || null,
-    }))
-    return parsed
-  } catch {
-    throw Object.assign(new Error('Malformed analysis response'), { code: 'parse' })
+  // still wraps its output in a markdown code fence (```json ... ```) or adds
+  // stray prose before/after the JSON — strip a fence, then as a last resort
+  // extract the outermost {...} span, instead of treating it as malformed.
+  const fenceStripped = raw?.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
+  const braceStart = fenceStripped?.indexOf('{')
+  const braceEnd = fenceStripped?.lastIndexOf('}')
+  const candidates = [fenceStripped]
+  if (braceStart > -1 && braceEnd > braceStart) candidates.push(fenceStripped.slice(braceStart, braceEnd + 1))
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate)
+      // Normalize the empty-string convention back to null for the app's data model.
+      parsed.items = (parsed.items ?? []).map((item) => ({
+        ...item,
+        estimatedQuantity: item.estimatedQuantity || null,
+      }))
+      return parsed
+    } catch {
+      /* try the next candidate */
+    }
   }
+  // Logged (not surfaced to the user) so a Vercel-only parse failure can
+  // actually be diagnosed instead of guessed at — this is the whole reason
+  // decoration analysis kept failing in production while working locally.
+  console.error('[vision] unparseable response:', JSON.stringify(raw)?.slice(0, 2000))
+  throw Object.assign(new Error('Malformed analysis response'), { code: 'parse' })
 }
