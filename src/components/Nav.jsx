@@ -70,7 +70,7 @@ export default function Nav() {
               >
                 Masuk
               </Link>
-              <Link to="/login" className="btn-primary">
+              <Link to="/register" className="btn-primary">
                 {content.hero.ctaPrimary}
               </Link>
             </>
@@ -125,7 +125,7 @@ export default function Nav() {
                     Masuk
                   </Link>
                   <Link
-                    to="/login"
+                    to="/register"
                     onClick={() => setOpen(false)}
                     className="btn-primary w-full"
                   >

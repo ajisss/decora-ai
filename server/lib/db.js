@@ -28,4 +28,17 @@ export async function migrate() {
   `
   await sql`CREATE INDEX IF NOT EXISTS generations_project_id_idx ON generations (project_id)`
   await sql`CREATE INDEX IF NOT EXISTS generations_status_idx ON generations (status)`
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT,
+      google_id TEXT UNIQUE,
+      usage_goal TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `
 }
