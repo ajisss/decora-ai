@@ -1,10 +1,16 @@
+let authToken = null
+
+export function setAuthToken(token) {
+  authToken = token
+}
+
 async function request(path, options) {
+  const headers = { 'Content-Type': 'application/json', ...options?.headers }
+  if (authToken) headers.Authorization = `Bearer ${authToken}`
+
   let res
   try {
-    res = await fetch(`/api${path}`, {
-      headers: { 'Content-Type': 'application/json' },
-      ...options,
-    })
+    res = await fetch(`/api${path}`, { ...options, headers })
   } catch {
     throw { code: 'connectivity', message: 'Server tidak bisa dihubungi. Cek koneksimu.' }
   }
@@ -50,4 +56,16 @@ export const api = {
 
   cancelItemImage: ({ projectId, generationId, itemId }) =>
     request('/item-image/cancel', { method: 'POST', body: JSON.stringify({ projectId, generationId, itemId }) }),
+
+  auth: {
+    register: ({ name, email, password }) =>
+      request('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
+    login: ({ email, password }) =>
+      request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+    google: ({ idToken }) =>
+      request('/auth/google', { method: 'POST', body: JSON.stringify({ idToken }) }),
+    me: () => request('/auth/me'),
+    survey: ({ usageGoal }) =>
+      request('/auth/survey', { method: 'POST', body: JSON.stringify({ usageGoal }) }),
+  },
 }

@@ -35,6 +35,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<LoginPage />} />
         {/* Publik (mock share link): lihat-saja, tanpa gate. */}
         <Route path="/share/:projectId/:generationId" element={<SharePage />} />
         <Route

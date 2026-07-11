@@ -178,6 +178,7 @@ export const content = {
       registerSub: 'Gratis — langsung mulai desain pertamamu.',
       emailLabel: 'Email',
       passwordLabel: 'Kata sandi',
+      confirmPasswordLabel: 'Konfirmasi kata sandi',
       nameLabel: 'Nama',
       submit: 'Masuk',
       registerSubmit: 'Daftar',
@@ -186,7 +187,6 @@ export const content = {
       or: 'atau',
       toRegister: 'Belum punya akun? Daftar',
       toLogin: 'Sudah punya akun? Masuk',
-      note: 'Versi demo — kredensial apa pun diterima.',
     },
     shell: {
       projects: 'Proyek',

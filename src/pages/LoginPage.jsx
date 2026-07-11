@@ -2,19 +2,19 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { content } from '../content.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { StepIcon } from '../components/icons.jsx'
 
-// Mock login/register — one card, mode toggle. Any credentials accepted (demo).
+// Login/register — one card, mode driven by the route path (/login or /register).
 export default function LoginPage() {
-  const { user, login, loginWithGoogle } = useAuth()
+  const { user, login, register } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const a = content.app.auth
 
-  const [mode, setMode] = useState('login') // 'login' | 'register'
+  const mode = location.pathname === '/register' ? 'register' : 'login'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
@@ -26,16 +26,31 @@ export default function LoginPage() {
     e.preventDefault()
     if (!email.trim()) return setError('Isi emailmu dulu, ya.')
     if (!password.trim()) return setError('Isi kata sandimu dulu, ya.')
+    if (mode === 'register') {
+      if (!name.trim()) return setError('Isi namamu dulu, ya.')
+      if (password.length < 8) return setError('Kata sandi minimal 8 karakter.')
+      if (password !== confirmPassword) return setError('Konfirmasi kata sandi tidak cocok.')
+    }
     setError(null)
     setSubmitting(true)
-    await login(email, password, mode === 'register' ? name : undefined)
-    navigate(from, { replace: true })
-  }
-
-  const google = async () => {
-    setSubmitting(true)
-    await loginWithGoogle()
-    navigate(from, { replace: true })
+    try {
+      if (mode === 'register') {
+        await register(name, email, password)
+        navigate('/survey', { replace: true, state: { from } })
+      } else {
+        await login(email, password)
+        navigate(from, { replace: true })
+      }
+    } catch (err) {
+      setSubmitting(false)
+      setError(
+        err.code === 'email_taken'
+          ? 'Email ini sudah terdaftar. Coba masuk, atau pakai email lain.'
+          : err.code === 'invalid_credentials'
+            ? 'Email atau kata sandi salah.'
+            : (err.message ?? 'Terjadi kesalahan. Coba lagi.'),
+      )
+    }
   }
 
   return (
@@ -64,7 +79,10 @@ export default function LoginPage() {
                     id="auth-name"
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value)
+                      setError(null)
+                    }}
                     className="h-10 w-full rounded-lg border border-paper-line bg-paper px-3 text-sm focus:border-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
                   />
                 </div>
@@ -101,6 +119,23 @@ export default function LoginPage() {
                   className="h-10 w-full rounded-lg border border-paper-line bg-paper px-3 text-sm focus:border-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
                 />
               </div>
+              {mode === 'register' && (
+                <div>
+                  <label htmlFor="auth-confirm-password" className="mb-1.5 block text-sm font-medium text-ink-soft">
+                    {a.confirmPasswordLabel}
+                  </label>
+                  <input
+                    id="auth-confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      setError(null)
+                    }}
+                    className="h-10 w-full rounded-lg border border-paper-line bg-paper px-3 text-sm focus:border-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
+                  />
+                </div>
+              )}
 
               {error && <p className="text-xs text-danger">{error}</p>}
 
@@ -109,52 +144,17 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="my-5 flex items-center gap-3 text-xs text-ink-muted">
-              <span className="h-px flex-1 bg-paper-line" />
-              {a.or}
-              <span className="h-px flex-1 bg-paper-line" />
-            </div>
-
-            <button type="button" onClick={google} disabled={submitting} className="btn-ghost w-full disabled:opacity-60">
-              <GoogleMark />
-              {a.google}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMode((m) => (m === 'login' ? 'register' : 'login'))
-                setError(null)
-              }}
-              className="mt-5 w-full text-center text-sm font-medium text-clay-deep hover:underline"
+            <Link
+              to={mode === 'login' ? '/register' : '/login'}
+              state={location.state}
+              onClick={() => setError(null)}
+              className="mt-5 block w-full text-center text-sm font-medium text-clay-deep hover:underline"
             >
               {mode === 'login' ? a.toRegister : a.toLogin}
-            </button>
+            </Link>
           </div>
-
-          <p className="mt-4 text-center text-xs text-ink-muted">{a.note}</p>
         </div>
       </main>
     </div>
-  )
-}
-
-function GoogleMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.1-6.9-5l-3.9 3C3.3 21.3 7.3 24 12 24z"
-      />
-      <path fill="#FBBC05" d="M5.1 14.4a7 7 0 0 1 0-4.7l-3.9-3a12 12 0 0 0 0 10.7l3.9-3z" />
-      <path
-        fill="#EA4335"
-        d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17 1.1 15.2 0 12 0 7.3 0 3.3 2.7 1.2 6.7l3.9 3c1-2.9 3.7-5 6.9-5z"
-      />
-    </svg>
   )
 }
