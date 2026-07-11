@@ -6,6 +6,7 @@ import { StepIcon } from '../components/icons.jsx'
 import GenerationEntry from '../components/generator/GenerationEntry.jsx'
 import AnalyzePanel from '../components/analyzer/AnalyzePanel.jsx'
 import FavoriteCard from '../components/studio/FavoriteCard.jsx'
+import BookmarkNameDialog from '../components/studio/BookmarkNameDialog.jsx'
 import ExportDialog from '../components/export/ExportDialog.jsx'
 import { downloadPng } from '../components/export/buildBriefPdf.js'
 import { useProjects } from '../context/ProjectsContext.jsx'
@@ -48,6 +49,10 @@ export default function StudioPage() {
   // Holds the action to run once the spend-confirmation dialog is accepted —
   // every path that fires a paid image generation goes through this gate.
   const [confirmGenerate, setConfirmGenerate] = useState(null)
+  // The generation currently being named/renamed as a favorite — null closes
+  // the dialog. Its own .favorite flag tells the dialog/save handler whether
+  // this is a first-time bookmark or a rename of an existing one.
+  const [bookmarkTarget, setBookmarkTarget] = useState(null)
   const autorunFired = useRef(false)
   const mainRef = useRef(null)
   const entryRefs = useRef(new Map())
@@ -228,11 +233,29 @@ export default function StudioPage() {
     composerRef.current?.focus()
   }
 
-  const handleToggleFavorite = (entry) =>
+  // Marking a design favorite requires naming it first (the dialog); removing
+  // one doesn't — un-favoriting is reversible and needs no ceremony.
+  const handleToggleFavorite = (entry) => {
+    if (entry.favorite) {
+      updateProject(project.id, (p) => ({
+        ...p,
+        generations: p.generations.map((g) => (g.id === entry.id ? { ...g, favorite: false } : g)),
+      }))
+      return
+    }
+    setBookmarkTarget(entry)
+  }
+
+  const saveBookmarkName = (name) => {
+    if (!bookmarkTarget) return
+    const wasFavorite = bookmarkTarget.favorite
     updateProject(project.id, (p) => ({
       ...p,
-      generations: p.generations.map((g) => (g.id === entry.id ? { ...g, favorite: !g.favorite } : g)),
+      generations: p.generations.map((g) => (g.id === bookmarkTarget.id ? { ...g, favorite: true, favoriteName: name } : g)),
     }))
+    showToast(wasFavorite ? t.favoriteRenamed : t.favoriteSaved)
+    setBookmarkTarget(null)
+  }
 
   // M5: pilih maksimal 2 desain; memilih yang ke-2 langsung membuka perbandingan.
   const handleToggleCompare = (entry) =>
@@ -255,6 +278,7 @@ export default function StudioPage() {
   const filteredFavorites = favoriteQueryLower
     ? favoriteEntries.filter(
         (g) =>
+          (g.favoriteName ?? '').toLowerCase().includes(favoriteQueryLower) ||
           (g.modificationNote ?? '').toLowerCase().includes(favoriteQueryLower) ||
           g.prompt.toLowerCase().includes(favoriteQueryLower),
       )
@@ -509,6 +533,7 @@ export default function StudioPage() {
                           projectId={project.id}
                           onJumpToFeed={() => scrollToEntry(g.id)}
                           onExport={(gen) => setExportTargetId(gen.id)}
+                          onRename={() => setBookmarkTarget(g)}
                         />
                       ))
                     )}
@@ -679,6 +704,14 @@ export default function StudioPage() {
         title={t.confirmGenerateTitle}
         body={t.confirmGenerateBody}
         confirmLabel={t.confirmGenerateCta}
+      />
+
+      <BookmarkNameDialog
+        open={Boolean(bookmarkTarget)}
+        title={bookmarkTarget?.favorite ? t.bookmarkRenameTitle : t.bookmarkDialogTitle}
+        initialName={bookmarkTarget?.favoriteName ?? ''}
+        onClose={() => setBookmarkTarget(null)}
+        onSave={saveBookmarkName}
       />
     </AppShell>
   )

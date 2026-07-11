@@ -35,21 +35,35 @@ function Accordion({ icon, label, open, onToggle, children }) {
 // AnalyzePanel's own thumbnail+version badge (hideImage) since the card
 // already shows the design and its version above, and this list can hold
 // many favorites at once.
-export default function FavoriteCard({ entry, versionNumber, projectId, onJumpToFeed, onExport }) {
+export default function FavoriteCard({ entry, versionNumber, projectId, onJumpToFeed, onExport, onRename }) {
   const [promptOpen, setPromptOpen] = useState(false)
   const [analysisOpen, setAnalysisOpen] = useState(false)
 
   return (
     <div className="rounded-xl2 border border-paper-line bg-paper p-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
-          {t.design} {versionNumber}
-          <StepIcon name="star" className="h-3.5 w-3.5 fill-clay text-clay" />
+        <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-ink">
+          <StepIcon name="star" className="h-3.5 w-3.5 shrink-0 fill-clay text-clay" />
+          <span className="truncate">{entry.favoriteName || `${t.design} ${versionNumber}`}</span>
+          <button
+            type="button"
+            onClick={onRename}
+            aria-label={t.renameFavorite}
+            title={t.renameFavorite}
+            className="shrink-0 text-ink-muted hover:text-clay"
+          >
+            <StepIcon name="pencil" className="h-3.5 w-3.5" />
+          </button>
         </span>
-        <span className="text-xs text-ink-muted">
+        <span className="shrink-0 text-xs text-ink-muted">
           {new Date(entry.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
         </span>
       </div>
+      {entry.favoriteName && (
+        <p className="mt-0.5 text-xs text-ink-muted">
+          {t.design} {versionNumber}
+        </p>
+      )}
 
       <button
         type="button"
