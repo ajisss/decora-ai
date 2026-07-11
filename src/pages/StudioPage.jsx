@@ -4,6 +4,7 @@ import AppShell from '../components/shell/AppShell.jsx'
 import SegmentedControl from '../components/wizard/SegmentedControl.jsx'
 import { StepIcon } from '../components/icons.jsx'
 import GenerationEntry from '../components/generator/GenerationEntry.jsx'
+import PlanMessage from '../components/generator/PlanMessage.jsx'
 import AnalyzePanel from '../components/analyzer/AnalyzePanel.jsx'
 import FavoriteCard from '../components/studio/FavoriteCard.jsx'
 import BookmarkNameDialog from '../components/studio/BookmarkNameDialog.jsx'
@@ -21,7 +22,7 @@ const t = content.app.studio
 const tc = content.app.compare
 
 // Per-project feed scroll offsets, kept for the life of the tab so navigating
-// away and back (wireflow §7 scroll restoration) doesn't dump the user at the top.
+// away and back (wireflow §7 scroll restoration) doesn't dump the user at the bottom.
 const feedScrollMemory = new Map()
 
 export default function StudioPage() {
@@ -29,11 +30,14 @@ export default function StudioPage() {
   const { state } = useLocation()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { getProject, runGeneration, cancelGeneration, refreshProject, updateProject } = useProjects()
+  const { getProject, runGeneration, runPlan, cancelGeneration, refreshProject, updateProject } = useProjects()
   const { showToast } = useToast()
   const project = getProject(projectId)
 
   const [note, setNote] = useState('')
+  const [mode, setMode] = useState('generate') // 'generate' = bikin gambar · 'plan' = ngobrol matangkan ide (gratis)
+  const [modeMenuOpen, setModeMenuOpen] = useState(false)
+  const modeMenuRef = useRef(null)
   const [composerImage, setComposerImage] = useState(null) // data URL — freshly uploaded reference, distinct from "Jadikan referensi" on a past design
   const [rightTab, setRightTab] = useState('informasi')
   const [favoriteQuery, setFavoriteQuery] = useState('')
@@ -61,7 +65,7 @@ export default function StudioPage() {
   const entryRefs = useRef(new Map())
   const analysisSectionRef = useRef(null)
   const composerRef = useRef(null)
-  const prevGenerationCount = useRef(null)
+  const prevTimelineCount = useRef(null)
   const genParamHandled = useRef(false)
   const prevStatuses = useRef(new Map())
   // Generations already pending when this tab opened (e.g. a refresh mid-generation,
@@ -72,7 +76,17 @@ export default function StudioPage() {
   )
 
   const generations = project?.generations ?? []
+  const messages = project?.messages ?? []
   const isPending = generations.some((g) => g.status === 'pending')
+  const isPlanPending = messages.some((m) => m.status === 'pending')
+  // Unified oldest-first feed (chat convention: latest at the bottom) — generation
+  // cards and plan-mode turns interleaved by timestamp so the conversation reads
+  // as one thread. `generations`/`messages` themselves stay newest-first (version
+  // numbering, latestDoneId, etc. all key off that order — see versionOf below).
+  const timeline = [
+    ...generations.map((g) => ({ kind: 'gen', id: g.id, createdAt: g.createdAt, data: g })),
+    ...messages.map((m) => ({ kind: 'msg', id: m.id, createdAt: m.createdAt, data: m })),
+  ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
   const lightbox = generations.find((g) => g.id === lightboxId) ?? null
   const analyzeTarget = generations.find((g) => g.id === analyzeTargetId) ?? null
   const exportTarget = generations.find((g) => g.id === exportTargetId) ?? null
@@ -99,6 +113,19 @@ export default function StudioPage() {
   useEffect(() => {
     if (compareOpen) setComparePct(50)
   }, [compareOpen])
+
+  // Mode dropdown (Buat gambar / Rencana): close on outside click / Escape.
+  useEffect(() => {
+    if (!modeMenuOpen) return
+    const onDocClick = (e) => !modeMenuRef.current?.contains(e.target) && setModeMenuOpen(false)
+    const onKey = (e) => e.key === 'Escape' && setModeMenuOpen(false)
+    document.addEventListener('mousedown', onDocClick)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [modeMenuOpen])
 
   useEffect(() => {
     if (!project || !state?.autorun || autorunFired.current) return
@@ -128,7 +155,7 @@ export default function StudioPage() {
       const doneEntries = generations.filter((g) => g.status === 'done')
       const i = doneEntries.findIndex((g) => g.id === lightbox.id)
       if (i === -1) return
-      const next = e.key === 'ArrowRight' ? doneEntries[i - 1] : doneEntries[i + 1] // feed is newest-first
+      const next = e.key === 'ArrowRight' ? doneEntries[i - 1] : doneEntries[i + 1] // generations array is newest-first
       if (next) setLightboxId(next.id)
     }
     window.addEventListener('keydown', onKey)
@@ -143,23 +170,27 @@ export default function StudioPage() {
   }, [])
 
   // T5: restore this project's feed scroll offset on mount, save it on the way out.
+  // No saved offset (fresh tab) defaults to the bottom — latest is newest-message-first
+  // chat convention, so that's where a visitor expects to land.
   useEffect(() => {
     const el = mainRef.current
     if (!el) return
-    el.scrollTop = feedScrollMemory.get(projectId) ?? 0
+    el.scrollTop = feedScrollMemory.get(projectId) ?? el.scrollHeight
     return () => feedScrollMemory.set(projectId, el.scrollTop)
   }, [projectId])
 
-  // T5: a newly inserted entry only pulls the feed to the top if the user was
-  // already reading near the top — never yank scroll from someone reviewing history.
+  // T5: a newly inserted entry only pulls the feed to the bottom if the user was
+  // already reading near the bottom — never yank scroll from someone reviewing history.
   useEffect(() => {
     const el = mainRef.current
     if (!el) return
-    if (prevGenerationCount.current !== null && generations.length > prevGenerationCount.current) {
-      if (el.scrollTop <= 100) el.scrollTo({ top: 0, behavior: 'smooth' })
+    const total = generations.length + messages.length
+    if (prevTimelineCount.current !== null && total > prevTimelineCount.current) {
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 100
+      if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
     }
-    prevGenerationCount.current = generations.length
-  }, [generations.length])
+    prevTimelineCount.current = total
+  }, [generations.length, messages.length])
 
   // Q2: aria-live announcements for the generation lifecycle (ux-spec §12).
   useEffect(() => {
@@ -225,6 +256,21 @@ export default function StudioPage() {
       setNote('')
       setComposerImage(null)
     })
+  }
+
+  // Plan mode: spend-free, no confirm gate — send straight to the advisor.
+  const handlePlanSend = () => {
+    if (isPlanPending || !note.trim()) return
+    runPlan(project.id, note)
+    setNote('')
+  }
+
+  // "Pakai brief ini": drop the advisor's proposed brief into the composer and
+  // flip to Generate so the next send actually draws it.
+  const handleUseBrief = (brief) => {
+    setNote(brief)
+    setMode('generate')
+    composerRef.current?.focus()
   }
 
   const handleRetry = (entry) => {
@@ -315,42 +361,46 @@ export default function StudioPage() {
                 </p>
               </div>
             </div>
-            {generations.length === 0 ? (
+            {timeline.length === 0 ? (
               <div className="flex items-center justify-center py-10">
                 <EmptyState illustration="canvas" title={t.emptyTitle} body={t.emptyBody} />
               </div>
             ) : (
               <div className="mx-auto max-w-[720px] space-y-4">
-                {generations.map((entry, i) => (
-                  <div
-                    key={entry.id}
-                    ref={(el) => {
-                      if (el) entryRefs.current.set(entry.id, el)
-                      else entryRefs.current.delete(entry.id)
-                    }}
+                {timeline.map((item) =>
+                  item.kind === 'msg' ? (
+                    <PlanMessage key={item.id} message={item.data} onUseBrief={handleUseBrief} />
+                  ) : (
+                    <div
+                      key={item.id}
+                      ref={(el) => {
+                        if (el) entryRefs.current.set(item.id, el)
+                        else entryRefs.current.delete(item.id)
+                      }}
                     >
-                    <GenerationEntry
-                      entry={entry}
-                      index={i}
-                      total={generations.length}
-                      onOpenLightbox={(g) => setLightboxId(g.id)}
-                      onAnalyze={(g) => focusAnalysis(g.id)}
-                      onExport={(g) => setExportTargetId(g.id)}
-                      onRetry={handleRetry}
-                      onCancel={handleCancel}
-                      onUseAsReference={handleUseAsReference}
-                      onReply={handleReply}
-                      isReference={referenceEntry?.id === entry.id}
-                      isLatestDone={entry.id === latestDoneId}
-                      isBeingAnalyzed={rightTab === 'informasi' && analyzeTargetId === entry.id}
-                      flashed={flashId === entry.id}
-                      focused={rightTab === 'informasi' && analyzeTargetId === entry.id && flashId !== entry.id}
-                      onToggleFavorite={handleToggleFavorite}
-                      onToggleCompare={handleToggleCompare}
-                      isCompareSelected={compareIds.includes(entry.id)}
-                    />
-                  </div>
-                ))}
+                      <GenerationEntry
+                        entry={item.data}
+                        index={generations.findIndex((g) => g.id === item.id)}
+                        total={generations.length}
+                        onOpenLightbox={(g) => setLightboxId(g.id)}
+                        onAnalyze={(g) => focusAnalysis(g.id)}
+                        onExport={(g) => setExportTargetId(g.id)}
+                        onRetry={handleRetry}
+                        onCancel={handleCancel}
+                        onUseAsReference={handleUseAsReference}
+                        onReply={handleReply}
+                        isReference={referenceEntry?.id === item.id}
+                        isLatestDone={item.id === latestDoneId}
+                        isBeingAnalyzed={rightTab === 'informasi' && analyzeTargetId === item.id}
+                        flashed={flashId === item.id}
+                        focused={rightTab === 'informasi' && analyzeTargetId === item.id && flashId !== item.id}
+                        onToggleFavorite={handleToggleFavorite}
+                        onToggleCompare={handleToggleCompare}
+                        isCompareSelected={compareIds.includes(item.id)}
+                      />
+                    </div>
+                  ),
+                )}
               </div>
             )}
           </main>
@@ -377,54 +427,113 @@ export default function StudioPage() {
           )}
 
           <div className="shrink-0 px-4 pb-4 pt-2">
-            <div className="mx-auto flex max-w-[720px] items-end gap-2 rounded-2xl border border-paper-line bg-paper p-2 shadow-lg shadow-ink/5">
-              <ReferenceImageInput value={composerImage} onChange={setComposerImage} compact />
-              {referenceEntry && (
-                <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">
-                  <img
-                    src={`/images/${referenceEntry.imageId}`}
-                    alt=""
-                    className="h-7 w-7 rounded-full object-cover"
-                  />
-                  <span className="text-xs text-ink-soft">{t.refChip} {versionOf(referenceEntry)}</span>
+            <div className="mx-auto max-w-[720px]">
+              <div className="flex items-end gap-2 rounded-2xl border border-paper-line bg-paper p-2 shadow-lg shadow-ink/5">
+                {/* Mode switch: Rencana (advisor, gratis) vs Buat gambar (generate),
+                    folded into the composer as a dropdown. Default = Buat gambar so
+                    the original one-shot flow is unchanged. */}
+                <div className="relative shrink-0" ref={modeMenuRef}>
                   <button
                     type="button"
-                    onClick={() => setReferenceEntry(null)}
-                    className="text-ink-muted hover:text-ink"
-                    aria-label={t.removeRef}
+                    onClick={() => setModeMenuOpen((o) => !o)}
+                    aria-haspopup="menu"
+                    aria-expanded={modeMenuOpen}
+                    className="flex items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft px-3 py-2 text-xs font-medium text-ink-soft transition-colors hover:border-clay/40 hover:text-clay-deep"
                   >
-                    <StepIcon name="close" className="h-3 w-3" />
+                    <StepIcon name={mode === 'plan' ? 'spark' : 'image'} className="h-3.5 w-3.5" />
+                    {mode === 'plan' ? t.modePlan : t.modeGenerate}
+                    <StepIcon name="chevronDown" className="h-3 w-3" />
                   </button>
+                  {modeMenuOpen && (
+                    <div
+                      role="menu"
+                      className="absolute bottom-full left-0 z-20 mb-2 w-60 rounded-lg border border-paper-line bg-paper py-1 shadow-lg"
+                    >
+                      {[
+                        { value: 'generate', icon: 'image', label: t.modeGenerate, hint: t.modeGenerateHint },
+                        { value: 'plan', icon: 'spark', label: t.modePlan, hint: t.modePlanHint },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setMode(opt.value)
+                            setModeMenuOpen(false)
+                          }}
+                          className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-paper-soft"
+                        >
+                          <StepIcon name={opt.icon} className="mt-0.5 h-4 w-4 shrink-0 text-clay-deep" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium text-ink">{opt.label}</span>
+                            <span className="block text-xs text-ink-muted">{opt.hint}</span>
+                          </span>
+                          {mode === opt.value && <StepIcon name="check" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-clay" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-              <textarea
-                ref={composerRef}
-                rows={1}
-                value={note}
-                onChange={(e) => setNote(e.target.value.slice(0, 300))}
-                onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleGenerate()
-                }}
-                placeholder={t.composerPlaceholder}
-                className="max-h-24 flex-1 resize-none bg-transparent px-2 py-2 text-sm focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={isPending || !note.trim()}
-                aria-label={isPending ? t.generating : t.generate}
-                title={isPending ? t.generating : t.generate}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-clay text-white transition-colors hover:bg-clay-deep disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isPending ? (
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
-                    <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  <StepIcon name="arrow" className="h-4 w-4" />
+                {mode === 'generate' && (
+                  <>
+                    <ReferenceImageInput value={composerImage} onChange={setComposerImage} compact />
+                    {referenceEntry && (
+                      <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">
+                        <img
+                          src={`/images/${referenceEntry.imageId}`}
+                          alt=""
+                          className="h-7 w-7 rounded-full object-cover"
+                        />
+                        <span className="text-xs text-ink-soft">{t.refChip} {versionOf(referenceEntry)}</span>
+                        <button
+                          type="button"
+                          onClick={() => setReferenceEntry(null)}
+                          className="text-ink-muted hover:text-ink"
+                          aria-label={t.removeRef}
+                        >
+                          <StepIcon name="close" className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
-              </button>
+                <textarea
+                  ref={composerRef}
+                  rows={1}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value.slice(0, 300))}
+                  onKeyDown={(e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                      mode === 'plan' ? handlePlanSend() : handleGenerate()
+                    }
+                  }}
+                  placeholder={mode === 'plan' ? t.planPlaceholder : t.composerPlaceholder}
+                  className="max-h-24 flex-1 resize-none bg-transparent px-2 py-2 text-sm focus:outline-none"
+                />
+                {(() => {
+                  const busy = mode === 'plan' ? isPlanPending : isPending
+                  const label = mode === 'plan' ? t.planSend : isPending ? t.generating : t.generate
+                  return (
+                    <button
+                      type="button"
+                      onClick={mode === 'plan' ? handlePlanSend : handleGenerate}
+                      disabled={busy || !note.trim()}
+                      aria-label={label}
+                      title={label}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-clay text-white transition-colors hover:bg-clay-deep disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {busy ? (
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
+                          <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        <StepIcon name="arrow" className="h-4 w-4" />
+                      )}
+                    </button>
+                  )
+                })()}
+              </div>
             </div>
           </div>
         </div>

@@ -109,6 +109,7 @@ export function ProjectsProvider({ children }) {
         setup,
         prompt,
         generations: [],
+        messages: [], // Plan-mode advisory conversation (text-only, spend-free)
       }
       const next = { ...byId, [project.id]: project }
       persistLocal(next)
@@ -234,6 +235,54 @@ export function ProjectsProvider({ children }) {
             ),
           }))
         }
+      }
+    },
+    [updateProject],
+  )
+
+  // Plan mode: a spend-free advisory turn. The server chat endpoint is
+  // synchronous, so no polling — optimistically show the user's message plus a
+  // pending advisor bubble, then swap in the authoritative message list. The
+  // optimistic step writes local only (no server sync) so a debounced PUT can't
+  // land mid-request and clobber the server's saved reply.
+  const runPlan = useCallback(
+    async (projectId, text) => {
+      const message = text.trim()
+      if (!message) return
+      const pendingId = nanoid()
+      const now = new Date().toISOString()
+
+      setById((prev) => {
+        const current = prev[projectId]
+        if (!current) return prev
+        const messages = [
+          ...(current.messages ?? []),
+          { id: nanoid(), role: 'user', text: message, createdAt: now },
+          { id: pendingId, role: 'assistant', text: null, status: 'pending', createdAt: now },
+        ]
+        const next = { ...prev, [projectId]: { ...current, messages } }
+        writeLocal(next)
+        return next
+      })
+
+      try {
+        const { messages } = await api.plan({ projectId, message })
+        updateProject(projectId, (p) => ({ ...p, messages }))
+      } catch (err) {
+        const errorMessage =
+          err.code === 'config'
+            ? 'Layanan rencana belum dikonfigurasi.'
+            : 'Layanan rencana tidak bisa dihubungi. Coba lagi.'
+        setById((prev) => {
+          const current = prev[projectId]
+          if (!current) return prev
+          const messages = (current.messages ?? []).map((m) =>
+            m.id === pendingId ? { ...m, status: 'error', error: errorMessage } : m,
+          )
+          const next = { ...prev, [projectId]: { ...current, messages } }
+          writeLocal(next)
+          return next
+        })
       }
     },
     [updateProject],
@@ -388,6 +437,7 @@ export function ProjectsProvider({ children }) {
     undoDelete,
     duplicateProject,
     runGeneration,
+    runPlan,
     cancelGeneration,
     runAnalysis,
     runItemImage,

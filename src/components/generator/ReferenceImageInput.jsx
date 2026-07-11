@@ -53,10 +53,12 @@ export default function ReferenceImageInput({ value, onChange, compact = false }
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
+            aria-label={r.add}
+            title={r.add}
             className="inline-flex items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-clay/40 hover:text-clay-deep"
           >
             <StepIcon name="image" className="h-3.5 w-3.5" />
-            {r.add}
+            {r.addShort}
           </button>
         )}
       </div>
