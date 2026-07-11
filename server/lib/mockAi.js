@@ -54,21 +54,20 @@ async function fetchCommons(filename) {
   return buffer
 }
 
-// Upaya terakhir: pakai gambar apa pun yang sudah ada di data/images
-// (hasil generate sebelumnya) — mock tidak boleh gagal hanya karena jaringan.
-async function anyExistingImage() {
-  try {
-    const imagesDir = path.join(DATA_DIR, 'images')
-    const files = (await fs.readdir(imagesDir)).filter((f) => f.endsWith('.png'))
-    if (files.length === 0) return null
-    return fs.readFile(path.join(imagesDir, files[rotation % files.length]))
-  } catch {
-    return null
-  }
-}
+// Upaya terakhir kalau semua kandidat Wikimedia gagal (mis. network Vercel
+// tidak bisa reach Wikimedia sama sekali) — placeholder solid warna netral
+// yang di-embed langsung di kode, bukan file di disk. Sebelumnya fallback ini
+// baca folder data/images lokal, yang sekarang selalu kosong (gambar asli
+// pindah ke Vercel Blob) dan filesystem-nya sendiri ephemeral di Vercel — jadi
+// fallback lama itu dijamin gagal terus di sana. Mock tidak boleh gagal hanya
+// karena jaringan/disk, harus selalu punya jalan keluar.
+const PLACEHOLDER_IMAGE = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64',
+)
 
 // Generate mock: delay realistis singkat (latih UI pending), lalu foto asli.
-// Urutan ketahanan: file rotasi → sisa pool → gambar lokal yang sudah ada.
+// Urutan ketahanan: file rotasi → sisa pool → placeholder embedded.
 export async function mockGenerateImage() {
   await delay(2500 + Math.random() * 2500)
 
@@ -83,9 +82,7 @@ export async function mockGenerateImage() {
     }
   }
 
-  const local = await anyExistingImage()
-  if (local) return local
-  throw Object.assign(new Error('mock image unavailable'), { code: 'upstream' })
+  return PLACEHOLDER_IMAGE
 }
 
 export const MOCK_AI_ENABLED = process.env.MOCK_AI === 'true'
