@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { content } from '../../content.js'
+
+const t = content.app.wizard
 
 const CURATED = [
   { label: 'Gold + Sage', colors: ['#c9a04a', '#8a9a6e'] },
@@ -47,7 +50,8 @@ export default function PalettePicker({ value = [], onChange }) {
 
   return (
     <div>
-      <span className="mb-2 block text-sm font-medium text-ink-soft">Palet warna (opsional)</span>
+      <span className="mb-1 block text-sm font-medium text-ink-soft">{t.paletteLabel}</span>
+      <p className="mb-2 text-xs text-ink-muted">{t.paletteInvite}</p>
       <div className="flex flex-wrap gap-2">
         {CURATED.map((p) => (
           <button
@@ -83,11 +87,18 @@ export default function PalettePicker({ value = [], onChange }) {
           onClick={() => setCustomOpen((o) => !o)}
           className="rounded-full border border-paper-line bg-paper px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-ink/20 hover:text-ink"
         >
-          Kustom
+          {t.paletteCustom}
         </button>
       </div>
       {customOpen && (
         <div className="mt-2 flex items-center gap-2">
+          <input
+            type="color"
+            value={/^#([0-9a-f]{6})$/i.test(customHex) ? customHex : '#c05f3c'}
+            onChange={(e) => setCustomHex(e.target.value)}
+            aria-label={t.paletteCustom}
+            className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border border-paper-line bg-paper p-1"
+          />
           <input
             type="text"
             value={customHex}
@@ -96,11 +107,11 @@ export default function PalettePicker({ value = [], onChange }) {
             className="h-9 w-32 rounded-lg border border-paper-line bg-paper px-3 text-sm focus:border-clay focus:outline-none"
           />
           <button type="button" onClick={addCustom} className="btn-ghost !px-4 !py-1.5 text-xs">
-            Tambah
+            {t.paletteAdd}
           </button>
         </div>
       )}
-      {limitNote && <p className="mt-1.5 text-xs text-ink-muted">Maksimal 3 warna biar desainnya tetap serasi.</p>}
+      {limitNote && <p className="mt-1.5 text-xs text-ink-muted">{t.paletteLimit}</p>}
     </div>
   )
 }

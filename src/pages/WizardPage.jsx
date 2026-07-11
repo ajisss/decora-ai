@@ -6,6 +6,7 @@ import SegmentedControl from '../components/wizard/SegmentedControl.jsx'
 import StepperInput from '../components/wizard/StepperInput.jsx'
 import PalettePicker from '../components/wizard/PalettePicker.jsx'
 import ReferenceImageInput from '../components/generator/ReferenceImageInput.jsx'
+import Switch from '../components/ui/Switch.jsx'
 import { useProjects } from '../context/ProjectsContext.jsx'
 import { api } from '../api/client.js'
 import { content } from '../content.js'
@@ -58,6 +59,7 @@ function defaultDraft(teaserNotes, teaserReference) {
     colorPalette: [],
     notes: teaserNotes ?? '',
     referenceImage: teaserReference ?? null,
+    previewEnabled: false,
   }
 }
 
@@ -79,6 +81,9 @@ function draftFromProject(project) {
     colorPalette: s.colorPalette ?? [],
     notes: s.notes ?? '',
     referenceImage: null,
+    // Edit mode already has a matured prompt worth reviewing before it applies,
+    // so the review screen defaults on here (unlike a brand-new draft).
+    previewEnabled: true,
   }
 }
 
@@ -151,6 +156,17 @@ export default function WizardPage() {
     if (next.theme) return themeGroupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     if (next.venueType) return venueGroupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
+    // Preview is opt-in (switch above the CTA) — off by default for a new
+    // draft means the compiled prompt is used straight away, no review screen.
+    if (!draft.previewEnabled) {
+      const { prompt: compiled } = await api.previewPrompt(setup)
+      setPrompt(compiled)
+      setCompiledForSnapshot(setupSnapshot)
+      setPromptDirty(false)
+      await handleGenerate(compiled)
+      return
+    }
+
     if (promptDirty && compiledForSnapshot !== setupSnapshot) {
       setShowRecompileBanner(true)
       setView('preview')
@@ -173,7 +189,8 @@ export default function WizardPage() {
     setShowRecompileBanner(false)
   }
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (promptOverride) => {
+    const finalPrompt = promptOverride ?? prompt
     setCreating(true)
     let referenceImageId = editProject?.setup?.referenceImageId ?? null
     try {
@@ -192,7 +209,7 @@ export default function WizardPage() {
         ...p,
         name: draft.name,
         setup: { ...setup, referenceImageId },
-        prompt,
+        prompt: finalPrompt,
       }))
       navigate(`/studio/${editProjectId}`, { state: { setupUpdated: true } })
       return
@@ -201,7 +218,7 @@ export default function WizardPage() {
     const project = createProject({
       name: draft.name,
       setup: { ...setup, referenceImageId },
-      prompt,
+      prompt: finalPrompt,
     })
     sessionStorage.removeItem(DRAFT_KEY)
     navigate(`/studio/${project.id}`, { state: { autorun: true } })
@@ -272,7 +289,7 @@ export default function WizardPage() {
 
   return (
     <AppShell projectName={editProject?.name}>
-      <div className="mx-auto max-w-[640px] px-6 py-12">
+      <div className="mx-auto max-w-[640px] px-6 py-12 pb-6">
         <h1 className="font-display text-3xl font-semibold text-ink">
           {editProjectId ? t.editTitle : t.title}
         </h1>
@@ -332,6 +349,7 @@ export default function WizardPage() {
             options={['Small', 'Medium', 'Large']}
             value={draft.venueSize}
             onChange={setField('venueSize')}
+            optionHelpers={t.venueSizeHelpers}
           />
           <StepperInput label={t.guestLabel} value={draft.guestCapacity} onChange={setField('guestCapacity')} />
         </div>
@@ -343,7 +361,7 @@ export default function WizardPage() {
             options={['Economy', 'Standard', 'Premium', 'Luxury']}
             value={draft.budgetTier}
             onChange={setField('budgetTier')}
-            helper={t.budgetHelper}
+            optionHelpers={t.budgetHelpers}
           />
           <PalettePicker value={draft.colorPalette} onChange={setField('colorPalette')} />
           <div>
@@ -362,7 +380,22 @@ export default function WizardPage() {
           <ReferenceImageInput value={draft.referenceImage} onChange={setField('referenceImage')} />
         </div>
 
-        <div className="sticky bottom-0 mt-10 flex items-center justify-between border-t border-paper-line bg-paper py-4">
+        <div className="mt-8 border-t border-paper-line pt-6">
+          <Switch
+            id="wizard-preview-switch"
+            checked={draft.previewEnabled}
+            onChange={setField('previewEnabled')}
+            label={t.previewSwitchLabel}
+            hint={t.previewSwitchHint}
+          />
+        </div>
+
+      </div>
+
+      {/* Full-width toolbar, not constrained to the form's reading column —
+          the primary CTA sits at the true right edge for max reach/weight. */}
+      <div className="sticky bottom-0 border-t border-paper-line bg-paper">
+        <div className="flex items-center justify-between px-6 py-4">
           <button
             type="button"
             onClick={() => navigate(editProjectId ? `/studio/${editProjectId}` : '/projects')}
@@ -370,8 +403,8 @@ export default function WizardPage() {
           >
             {t.cancel}
           </button>
-          <button type="button" onClick={goToPreview} className="btn-primary">
-            {t.preview}
+          <button type="button" onClick={goToPreview} disabled={creating} className="btn-primary disabled:opacity-50">
+            {creating ? t.creating : draft.previewEnabled ? t.preview : editProjectId ? t.saveChanges : t.generate}
           </button>
         </div>
       </div>
