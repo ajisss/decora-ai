@@ -32,6 +32,9 @@ export const api = {
   cancelGenerate: ({ projectId, generationId }) =>
     request('/generate/cancel', { method: 'POST', body: JSON.stringify({ projectId, generationId }) }),
 
+  plan: ({ projectId, message }) =>
+    request('/plan', { method: 'POST', body: JSON.stringify({ projectId, message }) }),
+
   analyze: ({ projectId, generationId }) =>
     request('/analyze', { method: 'POST', body: JSON.stringify({ projectId, generationId }) }),
 
