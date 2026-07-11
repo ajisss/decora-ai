@@ -91,8 +91,12 @@ export async function analyzeImage(imageBuffer) {
   if (!res.ok) throw await parseError(res)
   const data = await res.json()
   const raw = data?.choices?.[0]?.message?.content
+  // Despite response_format enforcing json_schema, gemini-2.5-flash sometimes
+  // still wraps its output in a markdown code fence (```json ... ```) —
+  // strip that before parsing instead of treating it as malformed.
+  const cleaned = raw?.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
   try {
-    const parsed = JSON.parse(raw)
+    const parsed = JSON.parse(cleaned)
     // Normalize the empty-string convention back to null for the app's data model.
     parsed.items = (parsed.items ?? []).map((item) => ({
       ...item,
