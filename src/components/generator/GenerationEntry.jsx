@@ -32,19 +32,38 @@ export default function GenerationEntry({
   onRetry,
   onCancel,
   onUseAsReference,
+  onReply,
   isReference,
   isLatestDone,
   isBeingAnalyzed,
   onToggleFavorite,
   onToggleCompare,
   isCompareSelected,
+  flashed,
+  focused,
 }) {
   const versionNumber = total - index // oldest = 1, stable
   const elapsed = useElapsed(entry.status === 'pending')
   const [promptOpen, setPromptOpen] = useState(false)
 
   return (
-    <div className="rounded-xl2 border border-paper-line bg-paper p-4">
+    <div className="space-y-2">
+      {entry.modificationNote && (
+        <div className="flex justify-end">
+          <div className="max-w-[85%] rounded-2xl rounded-br-md bg-clay px-4 py-2.5 text-sm text-white sm:max-w-[70%]">
+            {entry.modificationNote}
+          </div>
+        </div>
+      )}
+      <div className="flex items-start gap-2">
+        <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-clay-soft text-clay-deep">
+          <StepIcon name="spark" className="h-3.5 w-3.5" />
+        </span>
+        <div
+          className={`min-w-0 flex-1 rounded-xl2 rounded-tl-md border border-paper-line bg-paper p-4 transition-shadow ${
+            flashed ? 'ring-2 ring-clay' : focused ? 'ring-2 ring-clay/50 ring-offset-2 ring-offset-paper' : ''
+          }`}
+        >
       <div className="mb-3 flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
           {t.design} {versionNumber}
@@ -58,15 +77,26 @@ export default function GenerationEntry({
         </span>
         <div className="flex items-center gap-2">
           {entry.status === 'done' && (
-            <button
-              type="button"
-              onClick={() => onToggleFavorite(entry)}
-              aria-label={entry.favorite ? content.app.favorite.remove : content.app.favorite.add}
-              title={entry.favorite ? content.app.favorite.remove : content.app.favorite.add}
-              className={entry.favorite ? 'text-clay' : 'text-ink-muted hover:text-clay'}
-            >
-              <StepIcon name="star" className={`h-4 w-4 ${entry.favorite ? 'fill-clay' : ''}`} />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => onToggleFavorite(entry)}
+                aria-label={entry.favorite ? content.app.favorite.remove : content.app.favorite.add}
+                title={entry.favorite ? content.app.favorite.remove : content.app.favorite.add}
+                className={entry.favorite ? 'text-clay' : 'text-ink-muted hover:text-clay'}
+              >
+                <StepIcon name="star" className={`h-4 w-4 ${entry.favorite ? 'fill-clay' : ''}`} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onReply(entry)}
+                aria-label={t.reply}
+                title={t.reply}
+                className="text-ink-muted hover:text-clay"
+              >
+                <StepIcon name="reply" className="h-4 w-4" />
+              </button>
+            </>
           )}
           <span className="text-xs text-ink-muted" title={new Date(entry.createdAt).toLocaleString()}>
             {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -105,14 +135,11 @@ export default function GenerationEntry({
             className="block w-full overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
           >
             <img
-              src={`/images/${entry.imageId}`}
+              src={entry.imageId}
               alt={`Konsep dekorasi pernikahan, ${t.design.toLowerCase()} ${versionNumber}`}
               className="aspect-[4/3] w-full object-cover"
             />
           </button>
-          {entry.modificationNote && (
-            <p className="mt-2 text-sm italic text-ink-muted">↳ {entry.modificationNote}</p>
-          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {/* uiuxcontext §5.6: satu aksi utama per layar — Analisis di desain
                 terbaru tampil sebagai tombol primer, sisanya ghost. */}
@@ -179,6 +206,8 @@ export default function GenerationEntry({
         {t.prompt}
       </button>
       {promptOpen && <p className="mt-1 text-xs text-ink-muted">{entry.prompt}</p>}
+        </div>
+      </div>
     </div>
   )
 }

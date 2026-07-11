@@ -46,7 +46,7 @@ export default function SharePage() {
             <h1 className="mt-1 font-display text-3xl font-semibold text-ink">{project.name}</h1>
 
             <img
-              src={`/images/${generation.imageId}`}
+              src={generation.imageId}
               alt={project.name}
               className="mt-6 w-full rounded-xl2 border border-paper-line object-cover"
             />

@@ -10,7 +10,7 @@ Two halves, one repo, one deploy artifact:
 ┌─────────────────────────┐        ┌──────────────────────────┐
 │   src/  (Frontend)       │        │   server/  (Backend)     │
 │   React + Vite + Tailwind│  /api  │   Express, Node.js       │
-│   Client-only rendering  │ ─────▶ │   File-based JSON store  │
+│   Client-only rendering  │ ─────▶ │   Neon Postgres + Blob   │
 └─────────────────────────┘        └──────────────────────────┘
                                               │
                                               ▼
@@ -18,10 +18,10 @@ Two halves, one repo, one deploy artifact:
                                     kie.ai gemini-2.5-flash (analysis)
 ```
 
-- **Dev**: two processes — Vite dev server (default port 4488, hot reload) proxies `/api`, `/images`, `/uploads` to the Express API (default port 4489).
+- **Dev**: two processes — Vite dev server (default port 4488, hot reload) proxies `/api` to the Express API (default port 4489).
 - **Prod**: one process — `npm run build` outputs static files to `dist/`; Express (`server/index.js`) serves `dist/` directly and answers `/api/*` itself. Only one port to expose.
 
-There is no database — projects, images, and uploads are stored as files under `server/data/` (gitignored). See `server/README.md`.
+Projects are persisted in Neon (serverless Postgres); generated images and reference uploads are persisted in Vercel Blob and served directly from its CDN. See `server/README.md`.
 
 ## Folder guide
 
@@ -37,7 +37,7 @@ There is no database — projects, images, and uploads are stored as files under
 
 ```bash
 npm install
-cp .env.example .env   # fill in API keys, see Environment below
+cp server/.env.example server/.env   # fill in API keys, see Environment below
 npm run dev             # frontend on :4488, backend on :4489, proxied together
 ```
 
@@ -45,7 +45,7 @@ Or as a single port (closer to production):
 
 ```bash
 npm run build           # builds src/ into dist/
-node --env-file=.env server/index.js   # serves dist/ + API on one port (:4489 by default)
+node --env-file=server/.env server/index.js   # serves dist/ + API on one port (:4489 by default)
 ```
 
 ## Scripts
@@ -59,7 +59,7 @@ node --env-file=.env server/index.js   # serves dist/ + API on one port (:4489 b
 
 ## Environment
 
-See `.env.example` for the full list with comments. Key ones:
+See `server/.env.example` for the full list with comments. Key ones:
 
 | Var | Purpose |
 |---|---|
@@ -68,3 +68,5 @@ See `.env.example` for the full list with comments. Key ones:
 | `KIE_API_KEY` | Decoration analysis (kie.ai, `gemini-2.5-flash`) |
 | `API_PORT` | Backend port (default `4489`) |
 | `GENERATION_DAILY_CAP` | Per-project daily design-generation limit |
+| `DATABASE_URL` | Neon Postgres pooled connection string (project data) |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (generated images + reference uploads) |

@@ -29,7 +29,7 @@ const TAXONOMY_ORDER = [
 // Inline in the Studio right-side panel — not a drawer/overlay — since
 // analyzing is a main-journey step (uiuxcontext.md §7 Canvas → Analyze →
 // Export), not a peripheral action. One generation at a time.
-export default function AnalyzePanel({ projectId, generation, versionNumber, onJumpToFeed, onExport }) {
+export default function AnalyzePanel({ projectId, generation, versionNumber, onJumpToFeed, onExport, hideImage = false }) {
   const { runAnalysis, updateProject, runItemImage, cancelItemImage } = useProjects()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -106,36 +106,39 @@ export default function AnalyzePanel({ projectId, generation, versionNumber, onJ
         {liveMessage}
       </div>
 
-      <div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-clay-soft px-2.5 py-1 text-xs font-semibold text-clay-deep">
-            <StepIcon name="checklist" className="h-3 w-3" />
-            {t.design} {versionNumber}
-          </span>
-          {onJumpToFeed && (
-            <button
-              type="button"
-              onClick={onJumpToFeed}
-              className="inline-flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-clay-deep"
-            >
-              {t.jumpToFeed}
-              <StepIcon name="external" className="h-3 w-3" />
-            </button>
-          )}
+      {!hideImage && (
+        <div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-clay-soft px-2.5 py-1 text-xs font-semibold text-clay-deep">
+              <StepIcon name="checklist" className="h-3 w-3" />
+              {t.design} {versionNumber}
+            </span>
+            {onJumpToFeed && (
+              <button
+                type="button"
+                onClick={onJumpToFeed}
+                className="inline-flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-clay-deep"
+              >
+                {t.jumpToFeed}
+                <StepIcon name="external" className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setZoomSrc(`/images/${generation.imageId}`)}
+            className="mt-1.5 block w-full overflow-hidden rounded-xl2 border-2 border-clay/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
+          >
+            <img src={`/images/${generation.imageId}`} alt="" className="aspect-video w-full object-cover" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setZoomSrc(`/images/${generation.imageId}`)}
-          className="mt-1.5 block w-full overflow-hidden rounded-xl2 border-2 border-clay/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
-        >
-          <img src={`/images/${generation.imageId}`} alt="" className="aspect-video w-full object-cover" />
-        </button>
-      </div>
+      )}
 
       <ImageLightbox src={zoomSrc} onClose={() => setZoomSrc(null)} />
 
       {!analysis && !loading && !error && (
-        <div className="flex flex-col items-center gap-3 rounded-xl2 border border-paper-line bg-paper py-8 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-xl2 border border-paper-line bg-paper px-4 py-8 text-center">
+          <p className="text-sm text-ink-soft">{t.ctaSuggestBody}</p>
           <button type="button" onClick={analyze} className="btn-primary">
             {t.cta}
           </button>
@@ -392,10 +395,10 @@ function ChecklistRow({ item, onToggle, onEdit, onRemove, onGenerateItemImage, o
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setZoomSrc(`/images/${itemImage.imageId}`)}
+                onClick={() => setZoomSrc(itemImage.imageId)}
                 className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
               >
-                <img src={`/images/${itemImage.imageId}`} alt={item.name} className="h-12 w-12 rounded-md object-cover" />
+                <img src={itemImage.imageId} alt={item.name} className="h-12 w-12 rounded-md object-cover" />
               </button>
               <button
                 type="button"
