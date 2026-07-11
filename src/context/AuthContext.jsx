@@ -24,13 +24,24 @@ function writeSession(session) {
   }
 }
 
+// Seeded once at module load, before AuthProvider's first render, so the very
+// first authenticated request (even one fired by another component's mount
+// effect) already carries the token — not deferred to a post-render effect.
+const initialSession = readSession()
+setAuthToken(initialSession?.token ?? null)
+
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(readSession)
+  const [session, setSession] = useState(initialSession)
   const user = session?.user ?? null
 
-  useEffect(() => {
-    setAuthToken(session?.token ?? null)
-  }, [session])
+  // The only place session (and therefore the token) changes — keeps
+  // localStorage, React state, and the api client's token in lockstep,
+  // synchronously, no effect indirection.
+  const persist = useCallback((next) => {
+    setSession(next)
+    writeSession(next)
+    setAuthToken(next?.token ?? null)
+  }, [])
 
   // Local-only patch — Settings' name/email/plan edits, and applying the
   // fresh user object /me and /survey return. Never itself calls the backend.
@@ -44,23 +55,18 @@ export function AuthProvider({ children }) {
   }, [])
 
   // Verify the cached session against the backend once on mount — catches an
-  // expired token or an account deleted server-side. Optimistic: the cached
-  // user renders immediately, this just confirms or clears it.
+  // expired/invalid token. Optimistic: the cached user renders immediately,
+  // this just confirms or clears it. Only a genuine auth failure logs out —
+  // a connectivity blip or server error leaves the cached session intact.
   useEffect(() => {
     if (!session?.token) return
     api.auth
       .me()
       .then(({ user: fresh }) => updateProfile(fresh))
-      .catch(() => {
-        setSession(null)
-        writeSession(null)
+      .catch((err) => {
+        if (err?.code === 'unauthorized') persist(null)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const persist = useCallback((next) => {
-    setSession(next)
-    writeSession(next)
   }, [])
 
   const login = useCallback(
