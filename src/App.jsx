@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext.jsx'
 
 // M9: code-splitting — landing tetap eager (first paint), sisanya lazy per route.
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
+const SurveyPage = lazy(() => import('./pages/SurveyPage.jsx'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage.jsx'))
 const WizardPage = lazy(() => import('./pages/WizardPage.jsx'))
 const StudioPage = lazy(() => import('./pages/StudioPage.jsx'))
@@ -36,6 +37,14 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<LoginPage />} />
+        <Route
+          path="/survey"
+          element={
+            <RequireAuth>
+              <SurveyPage />
+            </RequireAuth>
+          }
+        />
         {/* Publik (mock share link): lihat-saja, tanpa gate. */}
         <Route path="/share/:projectId/:generationId" element={<SharePage />} />
         <Route

@@ -188,6 +188,15 @@ export const content = {
       toRegister: 'Belum punya akun? Daftar',
       toLogin: 'Sudah punya akun? Masuk',
     },
+    survey: {
+      title: 'Kamu di sini sebagai apa?',
+      sub: 'Biar kami bisa sesuaikan pengalamannya buat kamu.',
+      optionCoupleLabel: 'Calon Pengantin',
+      optionCoupleHint: 'Aku lagi cari konsep dekorasi buat pernikahanku sendiri',
+      optionVendorLabel: 'Vendor & Decorator',
+      optionVendorHint: 'Aku kerja bikin konsep dekorasi buat klien',
+      skip: 'Lewati',
+    },
     shell: {
       projects: 'Proyek',
       settings: 'Pengaturan',
