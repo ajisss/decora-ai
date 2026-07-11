@@ -10,59 +10,100 @@ function apiKey() {
   return key
 }
 
+// Imaginer's API occasionally rejects a perfectly valid request with a
+// transient-looking error (observed directly: "Internal server error", and a
+// bogus "Model/quality cost not configured for gpt-image-2 (medium)" that
+// disappeared on an identical retry seconds later) — so a single bad response
+// doesn't necessarily mean the request itself was invalid. Retry a few times
+// with backoff before surfacing the failure.
+async function withRetry(fn, { attempts = 3, delayMs = 2000 } = {}) {
+  let lastErr
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      if (i < attempts - 1) {
+        console.log(`[imaginer] request failed (attempt ${i + 1}/${attempts}): ${err.message} — retrying`)
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+  throw lastErr
+}
+
 // Reference images are uploaded as raw bytes (unlike kie.ai, which required a
 // publicly reachable URL) — no PUBLIC_BASE_URL workaround needed.
 async function uploadReference(buffer, mime = 'image/png') {
-  const form = new FormData()
-  form.append('image', new Blob([buffer], { type: mime }), 'reference.png')
-  const res = await fetch(`${IMAGINER_BASE}/api/public/v1/upload`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey()}` },
-    body: form,
+  return withRetry(async () => {
+    const form = new FormData()
+    form.append('image', new Blob([buffer], { type: mime }), 'reference.png')
+    const res = await fetch(`${IMAGINER_BASE}/api/public/v1/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey()}` },
+      body: form,
+    })
+    const body = await res.json().catch(() => null)
+    if (!res.ok || !body?.image_id) {
+      throw Object.assign(new Error(body?.message ?? `Imaginer upload failed (${res.status})`), { code: 'upstream' })
+    }
+    return body.image_id
   })
-  const body = await res.json().catch(() => null)
-  if (!res.ok || !body?.image_id) {
-    throw Object.assign(new Error(body?.message ?? `Imaginer upload failed (${res.status})`), { code: 'upstream' })
-  }
-  return body.image_id
 }
 
 async function createGeneration({ prompt, refImageIds, ratio = '3:2', quality = 'medium', style } = {}) {
-  const res = await fetch(`${IMAGINER_BASE}/api/public/v1/generate`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey()}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model_id: MODEL_ID,
-      prompt,
-      ratio,
-      quality,
-      ...(style ? { style } : {}),
-      ...(refImageIds?.length ? { ref_image_ids: refImageIds } : {}),
-    }),
+  return withRetry(async () => {
+    const res = await fetch(`${IMAGINER_BASE}/api/public/v1/generate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model_id: MODEL_ID,
+        prompt,
+        ratio,
+        quality,
+        ...(style ? { style } : {}),
+        ...(refImageIds?.length ? { ref_image_ids: refImageIds } : {}),
+      }),
+    })
+    const body = await res.json().catch(() => null)
+    if (!res.ok || !body?.generation_id) {
+      throw Object.assign(new Error(body?.error ?? `Imaginer request failed (${res.status})`), { code: 'upstream' })
+    }
+    return body.generation_id
   })
-  const body = await res.json().catch(() => null)
-  if (!res.ok || !body?.generation_id) {
-    throw Object.assign(new Error(body?.error ?? `Imaginer request failed (${res.status})`), { code: 'upstream' })
-  }
-  return body.generation_id
 }
 
 // Generation runs in the background (server/routes/generate.js), not inline in
 // an HTTP request, so a generous ceiling is safe.
-async function pollGeneration(generationId, { intervalMs = 4000, timeoutMs = 600000 } = {}) {
+//
+// The status-check endpoint itself occasionally blips with a bare
+// `{"error":"Internal server error"}` (observed directly, transient — a retry
+// a few seconds later succeeds normally) even while the underlying generation
+// task is still fine. Only give up on that after several consecutive bad
+// polls in a row; a `status: failed`/`cancelled` result (the task itself
+// actually failing) still fails immediately, since that's not transient.
+async function pollGeneration(generationId, { intervalMs = 4000, timeoutMs = 600000, maxConsecutiveErrors = 5 } = {}) {
   const deadline = Date.now() + timeoutMs
   let lastStatus = null
+  let consecutiveErrors = 0
   while (Date.now() < deadline) {
     const res = await fetch(`${IMAGINER_BASE}/api/public/v1/generate/${encodeURIComponent(generationId)}`, {
       headers: { Authorization: `Bearer ${apiKey()}` },
     })
     const body = await res.json().catch(() => null)
     if (!res.ok || !body?.status) {
-      throw Object.assign(new Error(body?.error ?? `Imaginer status check failed (${res.status})`), { code: 'upstream' })
+      consecutiveErrors += 1
+      if (consecutiveErrors >= maxConsecutiveErrors) {
+        throw Object.assign(new Error(body?.error ?? `Imaginer status check failed (${res.status})`), { code: 'upstream' })
+      }
+      console.log(`[imaginer] generation=${generationId} status-check blip (${consecutiveErrors}/${maxConsecutiveErrors}): ${body?.error ?? res.status}`)
+      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+      continue
     }
+    consecutiveErrors = 0
     const { status } = body
     if (status !== lastStatus) {
       console.log(`[imaginer] generation=${generationId} status=${status}`)
