@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { content } from '../content.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import GoogleSignInButton from '../components/auth/GoogleSignInButton.jsx'
 
 // Login/register — one card, mode driven by the route path (/login or /register).
 export default function LoginPage() {
-  const { user, login, register } = useAuth()
+  const { user, login, register, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const a = content.app.auth
@@ -49,6 +50,22 @@ export default function LoginPage() {
           : err.code === 'invalid_credentials'
             ? 'Email atau kata sandi salah.'
             : (err.message ?? 'Terjadi kesalahan. Coba lagi.'),
+      )
+    }
+  }
+
+  const handleGoogleCredential = async (idToken) => {
+    setSubmitting(true)
+    try {
+      const { isNewUser } = await loginWithGoogle(idToken)
+      if (isNewUser) navigate('/survey', { replace: true, state: { from } })
+      else navigate(from, { replace: true })
+    } catch (err) {
+      setSubmitting(false)
+      setError(
+        err.code === 'config'
+          ? 'Google Sign-In belum dikonfigurasi di server.'
+          : 'Gagal masuk dengan Google. Coba lagi.',
       )
     }
   }
@@ -143,6 +160,19 @@ export default function LoginPage() {
                 {submitting ? a.submitting : mode === 'login' ? a.submit : a.registerSubmit}
               </button>
             </form>
+
+            <div className="my-5 flex items-center gap-3 text-xs text-ink-muted">
+              <span className="h-px flex-1 bg-paper-line" />
+              {a.or}
+              <span className="h-px flex-1 bg-paper-line" />
+            </div>
+
+            <GoogleSignInButton
+              label={a.google}
+              disabled={submitting}
+              onCredential={handleGoogleCredential}
+              onError={setError}
+            />
 
             <Link
               to={mode === 'login' ? '/register' : '/login'}
