@@ -8,3 +8,4 @@ server/data
 # Root READMEs (README.md, server/README.md, src/README.md) are NOT covered
 # by this and stay tracked.
 /docs/
+/.superpowers/
