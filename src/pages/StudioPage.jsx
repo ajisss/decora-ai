@@ -270,14 +270,7 @@ export default function StudioPage() {
                       if (el) entryRefs.current.set(entry.id, el)
                       else entryRefs.current.delete(entry.id)
                     }}
-                    className={`rounded-xl2 transition-shadow ${
-                      flashId === entry.id ? 'ring-2 ring-clay' : ''
-                    } ${
-                      rightTab === 'informasi' && analyzeTargetId === entry.id && flashId !== entry.id
-                        ? 'ring-2 ring-clay/50 ring-offset-2 ring-offset-paper'
-                        : ''
-                    }`}
-                  >
+                    >
                     <GenerationEntry
                       entry={entry}
                       index={i}
@@ -291,6 +284,8 @@ export default function StudioPage() {
                       isReference={referenceEntry?.id === entry.id}
                       isLatestDone={entry.id === latestDoneId}
                       isBeingAnalyzed={rightTab === 'informasi' && analyzeTargetId === entry.id}
+                      flashed={flashId === entry.id}
+                      focused={rightTab === 'informasi' && analyzeTargetId === entry.id && flashId !== entry.id}
                       onToggleFavorite={handleToggleFavorite}
                       onToggleCompare={handleToggleCompare}
                       isCompareSelected={compareIds.includes(entry.id)}
@@ -322,8 +317,8 @@ export default function StudioPage() {
             </div>
           )}
 
-          <div className="shrink-0 border-t border-paper-line bg-paper p-3">
-            <div className="mx-auto flex max-w-[720px] items-end gap-2">
+          <div className="shrink-0 px-4 pb-4 pt-2">
+            <div className="mx-auto flex max-w-[720px] items-end gap-2 rounded-2xl border border-paper-line bg-paper p-2 shadow-lg shadow-ink/5">
               {referenceEntry && (
                 <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">
                   <img
@@ -350,16 +345,24 @@ export default function StudioPage() {
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleGenerate()
                 }}
                 placeholder={t.composerPlaceholder}
-                className="max-h-24 flex-1 resize-none rounded-lg border border-paper-line bg-paper-soft px-3 py-2.5 text-sm focus:border-clay focus:bg-white focus:outline-none focus:ring-2 focus:ring-clay/20"
+                className="max-h-24 flex-1 resize-none bg-transparent px-2 py-2 text-sm focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleGenerate}
                 disabled={isPending}
-                className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label={isPending ? t.generating : t.generate}
+                title={isPending ? t.generating : t.generate}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-clay text-white transition-colors hover:bg-clay-deep disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <StepIcon name="spark" className="h-4 w-4" />
-                {isPending ? t.generating : t.generate}
+                {isPending ? (
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
+                    <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <StepIcon name="arrow" className="h-4 w-4" />
+                )}
               </button>
             </div>
           </div>

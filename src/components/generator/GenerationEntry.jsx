@@ -38,6 +38,8 @@ export default function GenerationEntry({
   onToggleFavorite,
   onToggleCompare,
   isCompareSelected,
+  flashed,
+  focused,
 }) {
   const versionNumber = total - index // oldest = 1, stable
   const elapsed = useElapsed(entry.status === 'pending')
@@ -56,7 +58,11 @@ export default function GenerationEntry({
         <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-clay-soft text-clay-deep">
           <StepIcon name="spark" className="h-3.5 w-3.5" />
         </span>
-        <div className="min-w-0 flex-1 rounded-xl2 rounded-tl-md border border-paper-line bg-paper p-4">
+        <div
+          className={`min-w-0 flex-1 rounded-xl2 rounded-tl-md border border-paper-line bg-paper p-4 transition-shadow ${
+            flashed ? 'ring-2 ring-clay' : focused ? 'ring-2 ring-clay/50 ring-offset-2 ring-offset-paper' : ''
+          }`}
+        >
       <div className="mb-3 flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-sm font-medium text-ink">
           {t.design} {versionNumber}
