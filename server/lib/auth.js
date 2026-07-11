@@ -33,7 +33,10 @@ export function verifyToken(token) {
 }
 
 function googleClientId() {
-  const clientId = process.env.VITE_GOOGLE_CLIENT_ID
+  // .trim() guards against a stray trailing newline/space from copy-pasting
+  // the value into a dashboard env var field — that would silently make the
+  // audience check below fail (the token's `aud` claim has no whitespace).
+  const clientId = process.env.VITE_GOOGLE_CLIENT_ID?.trim()
   if (!clientId) throw Object.assign(new Error('VITE_GOOGLE_CLIENT_ID is not configured'), { code: 'config' })
   return clientId
 }
@@ -47,7 +50,11 @@ export async function verifyGoogleIdToken(idToken) {
   let ticket
   try {
     ticket = await client.verifyIdToken({ idToken, audience: clientId })
-  } catch {
+  } catch (err) {
+    // Logged (not surfaced to the user) so a real config mismatch — wrong
+    // audience, expired token, wrong issuer — is diagnosable instead of
+    // guessed at behind the generic "invalid_token" response.
+    console.error('[auth] Google ID token verification failed:', err.message)
     throw Object.assign(new Error('Invalid Google ID token'), { code: 'invalid_token' })
   }
   const payload = ticket.getPayload()

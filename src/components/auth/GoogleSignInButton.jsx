@@ -26,7 +26,7 @@ function loadGoogleScript() {
 // error instead of attempting to load Google's script at all.
 export default function GoogleSignInButton({ label, disabled, onCredential, onError }) {
   const [loading, setLoading] = useState(false)
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
 
   const handleClick = async () => {
     if (!clientId) {
