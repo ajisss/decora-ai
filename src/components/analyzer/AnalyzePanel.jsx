@@ -395,10 +395,10 @@ function ChecklistRow({ item, onToggle, onEdit, onRemove, onGenerateItemImage, o
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setZoomSrc(`/images/${itemImage.imageId}`)}
+                onClick={() => setZoomSrc(itemImage.imageId)}
                 className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
               >
-                <img src={`/images/${itemImage.imageId}`} alt={item.name} className="h-12 w-12 rounded-md object-cover" />
+                <img src={itemImage.imageId} alt={item.name} className="h-12 w-12 rounded-md object-cover" />
               </button>
               <button
                 type="button"

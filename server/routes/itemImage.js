@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { nanoid } from 'nanoid'
+import { waitUntil } from '@vercel/functions'
 import { getProject, saveProject, saveImage, readImage } from '../lib/store.js'
 import { generateItemImage, buildItemPrompt } from '../lib/itemImage.js'
 
@@ -65,7 +66,7 @@ router.post('/', async (req, res) => {
 
   res.json({ item })
 
-  runItemImageInBackground(projectId, generationId, itemId, prompt, item.category)
+  waitUntil(runItemImageInBackground(projectId, generationId, itemId, prompt, item.category))
 })
 
 // Client-visible cancel — see server/routes/generate.js's /cancel for the same rationale.

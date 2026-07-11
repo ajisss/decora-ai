@@ -100,7 +100,7 @@ export default function ProjectsPage() {
               >
                 {mostRecentThumb ? (
                   <img
-                    src={`/images/${mostRecentThumb.imageId}`}
+                    src={mostRecentThumb.imageId}
                     alt=""
                     className="h-16 w-20 shrink-0 rounded-lg object-cover"
                   />
@@ -146,7 +146,7 @@ export default function ProjectsPage() {
                 <div key={project.id} className="group rounded-xl2 border border-paper-line bg-paper">
                   <Link to={`/studio/${project.id}`}>
                     {thumb ? (
-                      <ProjectThumbnail src={`/images/${thumb.imageId}`} />
+                      <ProjectThumbnail src={thumb.imageId} />
                     ) : (
                       <div className="flex aspect-[4/3] w-full items-center justify-center rounded-t-xl2 bg-paper-soft text-ink-muted">
                         <StepIcon name="image" className="h-8 w-8" />

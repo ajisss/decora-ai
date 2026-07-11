@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { nanoid } from 'nanoid'
+import { waitUntil } from '@vercel/functions'
 import { getProject, saveProject, saveImage, readImage, readUpload } from '../lib/store.js'
 import { generateImage, editImage } from '../lib/imaginer.js'
 import { mockGenerateImage, MOCK_AI_ENABLED } from '../lib/mockAi.js'
@@ -115,7 +116,7 @@ router.post('/', async (req, res) => {
   // Respond immediately with the pending entry; the client polls for the result.
   res.json({ generation, project })
 
-  runGenerationInBackground(projectId, generation.id, effectivePrompt, reference)
+  waitUntil(runGenerationInBackground(projectId, generation.id, effectivePrompt, reference))
 })
 
 // Client-visible cancel: the background job can't truly abort an in-flight

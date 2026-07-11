@@ -382,7 +382,7 @@ export default function StudioPage() {
               {referenceEntry && (
                 <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">
                   <img
-                    src={`/images/${referenceEntry.imageId}`}
+                    src={referenceEntry.imageId}
                     alt=""
                     className="h-7 w-7 rounded-full object-cover"
                   />
@@ -500,7 +500,7 @@ export default function StudioPage() {
                     className="flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-paper"
                   >
                     {g.imageId ? (
-                      <img src={`/images/${g.imageId}`} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                      <img src={g.imageId} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                     ) : (
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-paper-line">
                         <StepIcon name="image" className="h-4 w-4 text-ink-muted" />
@@ -575,7 +575,7 @@ export default function StudioPage() {
             <StepIcon name="close" className="h-5 w-5" />
           </button>
           <img
-            src={`/images/${lightbox.imageId}`}
+            src={lightbox.imageId}
             alt=""
             className="max-h-[70vh] max-w-full rounded-lg object-contain"
             onClick={(e) => e.stopPropagation()}

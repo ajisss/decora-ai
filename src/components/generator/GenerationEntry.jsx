@@ -135,7 +135,7 @@ export default function GenerationEntry({
             className="block w-full overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
           >
             <img
-              src={`/images/${entry.imageId}`}
+              src={entry.imageId}
               alt={`Konsep dekorasi pernikahan, ${t.design.toLowerCase()} ${versionNumber}`}
               className="aspect-[4/3] w-full object-cover"
             />

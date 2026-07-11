@@ -31,7 +31,7 @@ export async function buildBriefPdf({ project, generation, versionNumber }) {
   doc.text('Dibuat dengan Decora AI', pageWidth - margin, y, { align: 'right' })
   y += 20
 
-  const imageDataUrl = await loadImage(`/images/${generation.imageId}`)
+  const imageDataUrl = await loadImage(generation.imageId)
   const imgWidth = pageWidth - margin * 2
   const imgHeight = imgWidth * (2 / 3)
   doc.addImage(imageDataUrl, 'PNG', margin, y, imgWidth, imgHeight)
@@ -100,9 +100,16 @@ export async function buildBriefPdf({ project, generation, versionNumber }) {
   doc.save(`${slugify(project.name)}-brief-design-${versionNumber}.pdf`)
 }
 
-export function downloadPng(generation, project, versionNumber) {
+// The `download` attribute is ignored by browsers for cross-origin URLs (the
+// image now lives on Vercel Blob's CDN, not same-origin) — fetch it and
+// download via a same-origin blob: URL instead.
+export async function downloadPng(generation, project, versionNumber) {
+  const res = await fetch(generation.imageId)
+  const blob = await res.blob()
+  const objectUrl = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = `/images/${generation.imageId}`
+  a.href = objectUrl
   a.download = `${slugify(project.name)}-design-${versionNumber}.png`
   a.click()
+  URL.revokeObjectURL(objectUrl)
 }
