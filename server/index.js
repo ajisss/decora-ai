@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import projectsRouter from './routes/projects.js'
 import generateRouter from './routes/generate.js'
+import authRouter from './routes/auth.js'
 import planRouter from './routes/plan.js'
 import analyzeRouter from './routes/analyze.js'
 import uploadsRouter from './routes/uploads.js'
@@ -20,6 +21,7 @@ app.use(express.json({ limit: '2mb' }))
 
 app.use('/api/projects', projectsRouter)
 app.use('/api/generate', generateRouter)
+app.use('/api/auth', authRouter)
 app.use('/api/plan', planRouter)
 app.use('/api/analyze', analyzeRouter)
 app.use('/api/uploads', uploadsRouter)
