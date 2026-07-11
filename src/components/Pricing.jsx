@@ -4,10 +4,10 @@ import { StepIcon } from './icons.jsx'
 export default function Pricing({ data }) {
   const cols = data.plans.length === 2 ? 'md:grid-cols-2 md:max-w-3xl md:mx-auto' : 'md:grid-cols-3'
   return (
-    <section id="harga" className="border-y border-paper-line bg-paper-soft py-20 md:py-28">
+    <section id="harga" className="scroll-mt-20 border-y border-paper-line bg-paper-soft section-y">
       <div className="container-content">
-        <SectionHeading eyebrow={data.eyebrow} title={data.title} sub={data.sub} />
-        <div className={`mt-14 grid gap-6 ${cols}`}>
+        <SectionHeading title={data.title} sub={data.sub} />
+        <div className={`mt-16 grid gap-8 ${cols}`}>
           {data.plans.map((plan) => (
             <div
               key={plan.name}
@@ -44,7 +44,6 @@ export default function Pricing({ data }) {
             </div>
           ))}
         </div>
-        <p className="mt-8 text-center text-sm text-ink-muted">{data.note}</p>
       </div>
     </section>
   )

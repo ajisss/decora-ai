@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-10T13:14:45Z",
+  "title": "Design System: Decora AI",
+  "extensions": {
+    "colorMeta": {
+      "clay": { "role": "primary", "displayName": "Fired Clay", "canonical": "oklch(58% 0.13 39)", "tonalRamp": ["oklch(15% 0.09 39)", "oklch(25% 0.11 39)", "oklch(35% 0.12 39)", "oklch(45% 0.13 39)", "oklch(58% 0.13 39)", "oklch(68% 0.12 39)", "oklch(80% 0.08 39)", "oklch(92% 0.03 39)"] },
+      "clay-soft": { "role": "primary", "displayName": "Clay Wash", "canonical": "oklch(94% 0.02 50)", "tonalRamp": ["oklch(15% 0.09 39)", "oklch(25% 0.11 39)", "oklch(35% 0.12 39)", "oklch(45% 0.13 39)", "oklch(58% 0.13 39)", "oklch(68% 0.12 39)", "oklch(80% 0.08 39)", "oklch(94% 0.02 50)"] },
+      "clay-deep": { "role": "primary", "displayName": "Burnt Clay", "canonical": "oklch(45% 0.11 40)", "tonalRamp": ["oklch(15% 0.09 39)", "oklch(25% 0.11 39)", "oklch(35% 0.12 39)", "oklch(45% 0.11 40)", "oklch(58% 0.13 39)", "oklch(68% 0.12 39)", "oklch(80% 0.08 39)", "oklch(92% 0.03 39)"] },
+      "paper": { "role": "neutral", "displayName": "Pure Paper", "canonical": "oklch(100% 0 0)", "tonalRamp": ["oklch(30% 0.01 80)", "oklch(45% 0.008 80)", "oklch(60% 0.006 80)", "oklch(75% 0.005 80)", "oklch(85% 0.005 80)", "oklch(92% 0.006 75)", "oklch(98% 0.004 80)", "oklch(100% 0 0)"] },
+      "paper-soft": { "role": "neutral", "displayName": "Warm Paper", "canonical": "oklch(98% 0.004 80)", "tonalRamp": ["oklch(30% 0.01 80)", "oklch(45% 0.008 80)", "oklch(60% 0.006 80)", "oklch(75% 0.005 80)", "oklch(85% 0.005 80)", "oklch(92% 0.006 75)", "oklch(98% 0.004 80)", "oklch(100% 0 0)"] },
+      "paper-line": { "role": "neutral", "displayName": "Paper Fold", "canonical": "oklch(92% 0.006 75)", "tonalRamp": ["oklch(30% 0.01 80)", "oklch(45% 0.008 80)", "oklch(60% 0.006 80)", "oklch(75% 0.005 80)", "oklch(85% 0.005 80)", "oklch(92% 0.006 75)", "oklch(98% 0.004 80)", "oklch(100% 0 0)"] },
+      "ink": { "role": "neutral", "displayName": "Wet Ink", "canonical": "oklch(18% 0.01 50)", "tonalRamp": ["oklch(12% 0.01 50)", "oklch(18% 0.01 50)", "oklch(28% 0.012 50)", "oklch(40% 0.013 50)", "oklch(52% 0.013 50)", "oklch(65% 0.012 50)", "oklch(78% 0.008 50)", "oklch(90% 0.005 50)"] },
+      "ink-soft": { "role": "neutral", "displayName": "Ink Wash", "canonical": "oklch(33% 0.015 55)", "tonalRamp": ["oklch(12% 0.01 50)", "oklch(18% 0.01 50)", "oklch(28% 0.012 50)", "oklch(33% 0.015 55)", "oklch(52% 0.013 50)", "oklch(65% 0.012 50)", "oklch(78% 0.008 50)", "oklch(90% 0.005 50)"] },
+      "ink-muted": { "role": "neutral", "displayName": "Faded Ink", "canonical": "oklch(50% 0.012 55)", "tonalRamp": ["oklch(12% 0.01 50)", "oklch(18% 0.01 50)", "oklch(28% 0.012 50)", "oklch(40% 0.013 50)", "oklch(50% 0.012 55)", "oklch(65% 0.012 50)", "oklch(78% 0.008 50)", "oklch(90% 0.005 50)"] },
+      "danger": { "role": "status", "displayName": "Alarm", "canonical": "oklch(46% 0.14 27)", "tonalRamp": ["oklch(15% 0.10 27)", "oklch(25% 0.12 27)", "oklch(36% 0.13 27)", "oklch(46% 0.14 27)", "oklch(56% 0.13 27)", "oklch(68% 0.11 27)", "oklch(82% 0.06 27)", "oklch(95% 0.015 30)"] },
+      "danger-soft": { "role": "status", "displayName": "Alarm Wash", "canonical": "oklch(95% 0.015 30)", "tonalRamp": ["oklch(15% 0.10 27)", "oklch(25% 0.12 27)", "oklch(36% 0.13 27)", "oklch(46% 0.14 27)", "oklch(56% 0.13 27)", "oklch(68% 0.11 27)", "oklch(82% 0.06 27)", "oklch(95% 0.015 30)"] },
+      "success": { "role": "status", "displayName": "Moss", "canonical": "oklch(48% 0.09 152)", "tonalRamp": ["oklch(16% 0.06 152)", "oklch(26% 0.075 152)", "oklch(36% 0.085 152)", "oklch(48% 0.09 152)", "oklch(58% 0.08 152)", "oklch(70% 0.065 152)", "oklch(84% 0.04 152)", "oklch(95% 0.015 152)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headline only. Reserve for the single most aspirational line on the page." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles (h2) throughout the landing page." },
+      "title": { "displayName": "Title", "purpose": "Card and component headings (h3) — deliberately sans, not serif." },
+      "body": { "displayName": "Body", "purpose": "Paragraph copy. Cap measure at 65-75ch." },
+      "label": { "displayName": "Label / Eyebrow", "purpose": "Uppercase tracked category label. Currently over-used — budget to 1-2 per page, see Named Rule in DESIGN.md." }
+    },
+    "shadows": [
+      { "name": "resting-sm", "value": "0 1px 2px 0 rgba(0,0,0,0.05)", "purpose": "Lightest lift for directly-manipulated surfaces: the generator input card, an active segmented-control tab. Never used on a passive resting card." },
+      { "name": "overlay-lg", "value": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)", "purpose": "Dropdown menus — floating above the page, not resting in it." },
+      { "name": "overlay-2xl", "value": "0 25px 50px -12px rgba(0,0,0,0.25)", "purpose": "Dialogs and toasts — true modal-level overlays." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default 200ms easing for color/border transitions on buttons, links, chips, nav." },
+      { "name": "ease-out-expand", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "300ms easing for grid-rows expand/collapse (FAQ accordion) and other height reveals." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one high-emphasis action per view. Pill-shaped, solid clay fill.",
+      "html": "<button class=\"ds-btn-primary\">Buat Desain Pernikahan</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; background: #c05f3c; color: #ffffff; padding: 12px 24px; font-size: 14px; font-weight: 600; font-family: Karla, ui-sans-serif, system-ui, sans-serif; border: none; cursor: pointer; transition: background-color 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: #9c4a2d; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(192,95,60,0.4), 0 0 0 4px #ffffff; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action alongside a primary CTA — never two primaries side by side.",
+      "html": "<button class=\"ds-btn-ghost\">Lihat Contoh Hasil</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; background: #ffffff; color: #4a463f; padding: 12px 24px; font-size: 14px; font-weight: 600; font-family: Karla, ui-sans-serif, system-ui, sans-serif; border: 1px solid #ece8e2; cursor: pointer; transition: border-color 0.2s cubic-bezier(0.4,0,0.2,1), color 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-btn-ghost:hover { border-color: rgba(26,24,21,0.2); color: #1a1815; } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(192,95,60,0.4), 0 0 0 4px #ffffff; }"
+    },
+    {
+      "name": "Suggestion Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Additive style suggestion in the generator input — click to append to the prompt.",
+      "html": "<button class=\"ds-chip\">+ Jawa Klasik</button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; border-radius: 9999px; border: 1px solid #ece8e2; background: #faf9f7; color: #4a463f; padding: 6px 12px; font-size: 12px; font-weight: 500; font-family: Karla, ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: border-color 0.2s cubic-bezier(0.4,0,0.2,1), color 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-chip:hover { border-color: rgba(192,95,60,0.4); color: #9c4a2d; } .ds-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(192,95,60,0.4); }"
+    },
+    {
+      "name": "Content Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Problem/step card — border-first elevation, no shadow at rest.",
+      "html": "<div class=\"ds-card\"><span class=\"ds-card-eyebrow\">01</span><h3 class=\"ds-card-title\">Trial-error yang mahal</h3><p class=\"ds-card-body\">Sekarang tinggal ketik, kamu lihat bayangannya dulu — tanpa coba-coba mahal.</p></div>",
+      "css": ".ds-card { border-radius: 1.25rem; border: 1px solid #ece8e2; background: #ffffff; padding: 28px; font-family: Karla, ui-sans-serif, system-ui, sans-serif; } .ds-card-eyebrow { font-family: Fraunces, Georgia, serif; font-size: 14px; font-weight: 600; color: #c05f3c; } .ds-card-title { margin-top: 12px; font-size: 18px; font-weight: 600; color: #1a1815; } .ds-card-body { margin-top: 8px; font-size: 15px; line-height: 1.6; color: #4a463f; }"
+    },
+    {
+      "name": "Hero Composer",
+      "kind": "input",
+      "refersTo": "composer",
+      "description": "Common-chatbot shape: borderless textarea inside a bordered card, chips, and a bottom toolbar with attach-left / send-right. Not a form field with a stacked full-width button.",
+      "html": "<div class=\"ds-composer\"><textarea class=\"ds-composer-textarea\" rows=\"3\" placeholder=\"Contoh: pelaminan Jawa modern, dominan putih & emas, ada gebyok ukir & janur\"></textarea><div class=\"ds-composer-chips\"><button class=\"ds-chip\">+ Jawa Klasik</button><button class=\"ds-chip\">+ Sunda</button></div><div class=\"ds-composer-toolbar\"><button class=\"ds-composer-attach\">Tambah gambar referensi</button><button class=\"ds-composer-send\" aria-label=\"Buat Desain Pernikahan\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14M13 6l6 6-6 6\" transform=\"rotate(-90 12 12)\"/></svg></button></div></div>",
+      "css": ".ds-composer { border-radius: 1.25rem; border: 1px solid #ece8e2; background: #ffffff; padding: 12px; font-family: Karla, ui-sans-serif, system-ui, sans-serif; } .ds-composer-textarea { width: 100%; resize: none; border: 0; background: transparent; color: #1a1815; padding: 8px; font-size: 15px; line-height: 1.6; font-family: inherit; } .ds-composer-textarea::placeholder { color: #78726a; } .ds-composer-textarea:focus { outline: none; } .ds-composer-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px; } .ds-composer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #ece8e2; } .ds-composer-attach { display: inline-flex; align-items: center; gap: 6px; border-radius: 9999px; border: 1px solid #ece8e2; background: #faf9f7; color: #4a463f; padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; } .ds-composer-send { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 9999px; background: #c05f3c; color: #ffffff; border: none; cursor: pointer; transition: background-color 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-composer-send:hover { background: #9c4a2d; } .ds-composer-send:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Site Navigation",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Sticky header — transparent over the hero, gains a border and blur backdrop on scroll.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-nav-brand\" href=\"#top\">✦ Decora AI</a><nav class=\"ds-nav-links\"><a href=\"#\">Coba</a><a href=\"#\">Cara Kerja</a><a href=\"#\">Harga</a></nav><button class=\"ds-nav-cta\">Buat Desain Pernikahan</button></header>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 64px; padding: 0 24px; border-bottom: 1px solid #ece8e2; background: rgba(255,255,255,0.85); font-family: Karla, ui-sans-serif, system-ui, sans-serif; } .ds-nav-brand { display: flex; align-items: center; gap: 8px; font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 600; color: #1a1815; text-decoration: none; } .ds-nav-links { display: flex; align-items: center; gap: 28px; } .ds-nav-links a { font-size: 14px; font-weight: 500; color: #78726a; text-decoration: none; transition: color 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-nav-links a:hover { color: #1a1815; } .ds-nav-cta { display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; background: #c05f3c; color: #ffffff; padding: 10px 20px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: background-color 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-nav-cta:hover { background: #9c4a2d; }"
+    },
+    {
+      "name": "FAQ Accordion Item",
+      "kind": "custom",
+      "refersTo": "accordion-item",
+      "description": "Single-open accordion row — plus glyph rotates into a cross on open.",
+      "html": "<div class=\"ds-accordion-item\"><button class=\"ds-accordion-trigger\" aria-expanded=\"true\"><span>Ini beneran langsung jadi gambar?</span><span class=\"ds-accordion-icon\">+</span></button><div class=\"ds-accordion-panel\"><p>Ya. Ketik gaya, budaya, warna, dan elemen yang kamu mau — AI menghasilkan visual dekorasinya dalam hitungan detik.</p></div></div>",
+      "css": ".ds-accordion-item { border-bottom: 1px solid #ece8e2; font-family: Karla, ui-sans-serif, system-ui, sans-serif; } .ds-accordion-trigger { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; background: none; border: none; text-align: left; font-size: 15px; font-weight: 600; color: #1a1815; cursor: pointer; } .ds-accordion-icon { flex-shrink: 0; font-size: 20px; line-height: 1; color: #c05f3c; transform: rotate(45deg); transition: transform 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-accordion-panel { padding: 0 24px 20px; font-size: 15px; line-height: 1.6; color: #4a463f; } .ds-accordion-trigger:focus-visible { outline: 2px solid rgba(192,95,60,0.4); outline-offset: -2px; }"
+    },
+    {
+      "name": "Featured Pricing Card",
+      "kind": "card",
+      "refersTo": "pricing-card",
+      "description": "Signature component — the featured plan uses a clay ring + bottom-edge highlight instead of a shadow to signal emphasis.",
+      "html": "<div class=\"ds-pricing-card\"><span class=\"ds-pricing-badge\">✦ Paling populer</span><h3 class=\"ds-pricing-name\">Plus</h3><p class=\"ds-pricing-tagline\">Generate lebih bebas, hasil lebih bagus</p><p class=\"ds-pricing-price\">Langganan bulanan</p><button class=\"ds-btn-primary\" style=\"width:100%;margin-top:20px;\">Mulai Plus</button></div>",
+      "css": ".ds-pricing-card { display: flex; flex-direction: column; border-radius: 1.25rem; border: 1px solid #c05f3c; outline: 1px solid rgba(192,95,60,0.3); outline-offset: -1px; box-shadow: 0 1px 0 0 #c05f3c; background: #ffffff; padding: 28px; font-family: Karla, ui-sans-serif, system-ui, sans-serif; } .ds-pricing-badge { display: inline-flex; width: fit-content; align-items: center; gap: 6px; border-radius: 9999px; background: #f6e9e3; color: #9c4a2d; padding: 4px 12px; font-size: 12px; font-weight: 600; margin-bottom: 16px; } .ds-pricing-name { font-family: Fraunces, Georgia, serif; font-size: 20px; font-weight: 600; color: #1a1815; } .ds-pricing-tagline { margin-top: 4px; font-size: 14px; color: #78726a; } .ds-pricing-price { margin-top: 16px; font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 600; color: #9c4a2d; } .ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; background: #c05f3c; color: #ffffff; padding: 12px 24px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: background-color 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: #9c4a2d; }"
+    },
+    {
+      "name": "Quote Card",
+      "kind": "card",
+      "refersTo": "quote-card",
+      "description": "Adopted testimonial card: soft borderless paper-soft fill, whisper-clay quote mark, one clay-soft highlighted key phrase, avatar + name + role. Reuse everywhere a quote appears; do not reintroduce the bordered-white quote figure.",
+      "html": "<figure class=\"ds-quote\"><span class=\"ds-quote-mark\">“</span><blockquote class=\"ds-quote-body\">“Aku ketik bayangan dekorasiku, langsung muncul gambarnya. Nunjukin ke vendor jadi gampang banget — <mark class=\"ds-quote-hl\">gak perlu ribet jelasin</mark>.”</blockquote><figcaption class=\"ds-quote-attr\"><span class=\"ds-quote-avatar\">D</span><span class=\"ds-quote-meta\"><span class=\"ds-quote-name\">Dinda &amp; Bagas</span><span class=\"ds-quote-role\">Menikah 2026, Jawa × modern</span></span></figcaption></figure>",
+      "css": ".ds-quote { border-radius: 1.25rem; background: #faf9f7; padding: 20px; font-family: Karla, ui-sans-serif, system-ui, sans-serif; } .ds-quote-mark { font-family: Fraunces, Georgia, serif; font-size: 30px; line-height: 1; color: rgba(192,95,60,0.6); } .ds-quote-body { margin-top: 4px; font-size: 15px; line-height: 1.6; color: #1a1815; } .ds-quote-hl { border-radius: 4px; background: #f6e9e3; padding: 0 4px; color: #1a1815; } .ds-quote-attr { display: flex; align-items: center; gap: 10px; margin-top: 16px; } .ds-quote-avatar { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 9999px; background: #f6e9e3; color: #9c4a2d; font-family: Fraunces, Georgia, serif; font-size: 12px; font-weight: 600; } .ds-quote-meta { line-height: 1.2; } .ds-quote-name { display: block; font-size: 14px; font-weight: 600; color: #1a1815; } .ds-quote-role { display: block; font-size: 12px; color: #78726a; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Artisan's Notebook",
+    "overview": "The token names already say the quiet part out loud: ink, paper, clay. This is a craftsman's workbench, not a SaaS dashboard — a decorator's notebook where you sketch a wish in ink on paper, and the accent color is the literal material (clay) the thing gets shaped from. Every design decision should read as made by hand, for a specific occasion — never as generated scaffolding. The system is warm without being soft, and confident without being loud. It earns warmth through specificity — naming real adat elements correctly, writing in plain Indonesian, letting a single clay accent do all the emotional work — rather than through decoration, pastel gradients, or cutesy copy. It explicitly rejects three things: generic SaaS template energy (gradient blobs, stock-icon grids, hero-metric cards, an eyebrow label repeated above every section), murahan wedding-site energy (script fonts stacked everywhere, floral flourish, stock-photo couples), and cold corporate minimalism (restraint that strips out the romance of the occasion entirely).",
+    "keyCharacteristics": [
+      "One accent (clay) carries the entire emotional temperature — spent deliberately, never diluted across more colors",
+      "Serif display (Fraunces) for anything aspirational or emotional; sans (Karla) for anything functional or instructional",
+      "Flat, border-first surfaces at rest; shadow is reserved for things that visually overlap other things",
+      "Pill-shaped interactive elements (buttons, chips, badges) against softly-rounded containers (cards, inputs) — two radii, used consistently by role"
+    ],
+    "rules": [
+      { "name": "The One-Accent Rule", "body": "Clay is the only saturated color in the system. If a new element seems to need its own color to stand out, the answer is almost always spacing, weight, or size — not a new hue.", "section": "colors" },
+      { "name": "The Serif-Is-Earned Rule", "body": "Fraunces appears only on h1/h2 and other genuinely aspirational moments (a price, a standout stat). Component titles, buttons, labels, and body text stay in Karla.", "section": "typography" },
+      { "name": "The Eyebrow-Off-By-Default Rule", "body": "The .eyebrow utility exists but isn't in use anywhere on the current page. Reintroducing it needs a real category-label need, and even then it's capped at one per page.", "section": "typography" },
+      { "name": "The Border-Before-Shadow Rule", "body": "If a card just sits in the page flow, its elevation is a paper-line border, full stop. A shadow on a resting card is a bug, not a style choice.", "section": "elevation" },
+      { "name": "The Four-Role Spacing Rule", "body": "Every gap maps to one of four roles and every instance of that role uses the same value: xs/8px inline clusters, sm/16px related items, md/32px card-grid gaps and card padding (28px, same family), lg/64px heading-to-content, xl-2xl/96-128px section-to-section. Needing 'a bit more or less' than the role's value means the role is wrong, not that a fifth number is needed.", "section": "components" }
+    ],
+    "dos": [
+      "Do spend clay like it's rare — one primary action per view, one accent-colored moment per section.",
+      "Do keep Fraunces reserved for headlines and genuinely aspirational numbers; everything functional stays in Karla.",
+      "Do express elevation with a paper-line border first; reach for shadow-sm/lg/2xl only for touched or overlapping surfaces.",
+      "Do name Indonesian wedding/adat terms correctly and specifically (gebyok, paes ageng, janur, Jawa × modern).",
+      "Do let the product's core action (type → see it generate) be reachable in one step from the hero, not buried below a scroll."
+    ],
+    "donts": [
+      "Don't add a second saturated accent color \"for variety\".",
+      "Don't stack an uppercase tracked eyebrow above every section by default.",
+      "Don't add drop shadows to resting cards, gradient-blob background decoration, or hero-metric-card clichés.",
+      "Don't introduce script fonts, floral flourish borders, or stock couple photography.",
+      "Don't over-minimize into cold enterprise restraint.",
+      "Don't use border-left/border-right as a colored accent stripe on any card or list item."
+    ]
+  }
+}

@@ -30,13 +30,114 @@
   .container-content {
     @apply mx-auto w-full max-w-content px-6 md:px-8;
   }
+  /* Spacing tokens (DESIGN.md "Four-Role Spacing Rule"). One source of truth so
+     every section breathes the same. section-y = the xl/2xl section-to-section
+     step (112 / 176px); stack-lg = the lg heading-to-content gap (64px). */
+  .section-y {
+    @apply py-28 md:py-44;
+  }
+  .stack-lg {
+    @apply mt-16;
+  }
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-clay px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-clay-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:ring-offset-2;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-full border border-paper-line bg-white px-6 py-3 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/20 hover:text-ink;
   }
+  /* clay-deep, not clay: text-clay on white is 4.25:1, fails WCAG AA body text (needs 4.5:1). */
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.18em] text-clay;
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-clay-deep;
+  }
+}
+
+@layer utilities {
+  /* Hero entrance only — see DESIGN.md "Reveal animations must enhance an
+     already-visible default": this plays on mount, never gates visibility,
+     and collapses to instant under the prefers-reduced-motion block above. */
+  @keyframes hero-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-hero-in {
+    animation: hero-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Idle "I'm listening" pulse on the composer's AI avatar — signals a live
+     assistant, not a static form field. Purely ambient; frozen by the global
+     reduced-motion rule. */
+  @keyframes ai-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(192, 95, 60, 0.35);
+    }
+    70% {
+      box-shadow: 0 0 0 8px rgba(192, 95, 60, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(192, 95, 60, 0);
+    }
+  }
+  .animate-ai-pulse {
+    animation: ai-pulse 2.4s ease-out infinite;
+  }
+
+  /* Ambient drift for the decorative hero photos. Purely atmospheric — the
+     global prefers-reduced-motion rule collapses the duration and freezes it. */
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  /* HowItWorks right-side mock UI: staggered pop-in for tiles/rows, word-by-word
+     reveal for the typing scene, blinking caret. All collapse to their final
+     state instantly under the global prefers-reduced-motion rule. */
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .animate-pop {
+    animation: pop-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes word-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .animate-word {
+    display: inline-block;
+    animation: word-in 0.4s ease-out both;
+  }
+  @keyframes caret-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  .animate-caret {
+    animation: caret-blink 1s steps(1) infinite;
   }
 }

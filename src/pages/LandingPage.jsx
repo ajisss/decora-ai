@@ -1,7 +1,6 @@
 import { content } from '../content.js'
 import Nav from '../components/Nav.jsx'
 import Hero from '../components/Hero.jsx'
-import GeneratorTeaser from '../components/GeneratorTeaser.jsx'
 import ProblemFraming from '../components/ProblemFraming.jsx'
 import HowItWorks from '../components/HowItWorks.jsx'
 import Portfolio from '../components/Portfolio.jsx'
@@ -16,7 +15,6 @@ export default function LandingPage() {
       <Nav />
       <main>
         <Hero data={content.hero} />
-        <GeneratorTeaser />
         <ProblemFraming data={content.problems} />
         <HowItWorks data={content.howItWorks} />
         <Portfolio />

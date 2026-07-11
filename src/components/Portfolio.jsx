@@ -1,59 +1,42 @@
 import { content } from '../content.js'
 import SectionHeading from './SectionHeading.jsx'
-import { StepIcon } from './icons.jsx'
+import { MOCK_PHOTOS, mockPhotoUrl } from '../lib/mockPhotos.js'
 
-// Placeholder visual: gradient + label (belum ada aset gambar riil).
-// Tiap kartu menampilkan prompt → hasil generate untuk menegaskan alur self-serve.
+// Two rows of three cards. Each card is one culture combination: a photo, the
+// style cross (clay label), and the combo name. Photos are illustrative mock
+// assets (shared MOCK_PHOTOS pool) until real generated results exist.
 export default function Portfolio() {
   const g = content.gallery
   return (
-    <section id="portofolio" className="container-content py-20 md:py-28">
-      <SectionHeading eyebrow={g.eyebrow} title={g.title} sub={g.sub} />
-      <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {g.items.map((item, i) => (
-          <figure
-            key={item.tag}
-            className="overflow-hidden rounded-xl2 border border-paper-line bg-white"
-          >
-            <div className="grid grid-cols-2">
-              <PlaceholderPane label={item.prompt} variant="before" seed={i} />
-              <PlaceholderPane label={item.result} variant="after" seed={i} />
+    <section id="portofolio" className="scroll-mt-20 container-content section-y">
+      <SectionHeading title={g.title} sub={g.sub} />
+
+      <div className="mt-16 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        {g.items.map((item) => (
+          <figure key={item.name} className="flex flex-col">
+            <div className="relative rounded-xl2 border border-paper-line bg-paper-soft p-4">
+              {/* Minimalist corner ornament — clay L-brackets framing the photo
+                  like a matted print, a quiet decorative border. */}
+              <span className="pointer-events-none absolute left-2 top-2 h-4 w-4 border-l border-t border-clay/50" />
+              <span className="pointer-events-none absolute right-2 top-2 h-4 w-4 border-r border-t border-clay/50" />
+              <span className="pointer-events-none absolute bottom-2 left-2 h-4 w-4 border-b border-l border-clay/50" />
+              <span className="pointer-events-none absolute bottom-2 right-2 h-4 w-4 border-b border-r border-clay/50" />
+              <img
+                src={mockPhotoUrl(MOCK_PHOTOS[item.photo], 600)}
+                alt={`Dekorasi ${item.name}`}
+                loading="lazy"
+                className="aspect-[4/3] w-full rounded-md object-cover"
+              />
             </div>
-            <figcaption className="flex items-center justify-between px-5 py-4">
-              <span className="text-sm font-semibold text-ink">{item.tag}</span>
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-                prompt <StepIcon name="arrow" className="h-3.5 w-3.5" /> hasil
-              </span>
+            <figcaption className="mt-5 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-clay-deep">
+                {item.style}
+              </p>
+              <h3 className="mt-1.5 text-lg font-semibold text-ink">{item.name}</h3>
             </figcaption>
           </figure>
         ))}
       </div>
-      <p className="mt-8 text-center text-sm text-ink-muted">
-        Contoh visual bersifat ilustratif — aset portofolio riil menyusul.
-      </p>
     </section>
-  )
-}
-
-function PlaceholderPane({ label, variant, seed }) {
-  const hues = [18, 12, 28, 8, 22, 15]
-  const h = hues[seed % hues.length]
-  const isAfter = variant === 'after'
-  const bg = isAfter
-    ? `linear-gradient(140deg, hsl(${h} 45% 62%), hsl(${h + 12} 40% 42%))`
-    : `linear-gradient(140deg, hsl(${h} 12% 88%), hsl(${h} 10% 78%))`
-  return (
-    <div
-      className="relative flex aspect-[4/5] items-end p-3"
-      style={{ background: bg }}
-    >
-      <span
-        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-          isAfter ? 'bg-white/90 text-ink' : 'bg-ink/10 text-ink-soft'
-        }`}
-      >
-        {label}
-      </span>
-    </div>
   )
 }

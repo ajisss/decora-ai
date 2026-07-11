@@ -12,6 +12,23 @@ import { content } from '../content.js'
 
 const t = content.app.wizard
 const DRAFT_KEY = 'decor-ai:wizard-draft'
+const TEASER_HANDOFF_KEY = 'decor-ai:teaser-handoff'
+
+// The hero's teaser prompt arrives as router state on the already-logged-in
+// path, but a logged-out visitor gets bounced through /login first — React
+// Router state doesn't survive that hop, so the hero also stashes the same
+// data here before navigating. Peek is a pure read (safe under StrictMode's
+// double-render in dev); the matching sessionStorage.removeItem lives in a
+// mount effect below — removeItem is idempotent, so double-firing there is
+// harmless, unlike double-firing a combined read-and-clear in render body.
+function peekTeaserHandoff() {
+  try {
+    const raw = sessionStorage.getItem(TEASER_HANDOFF_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
 // Nilai chip sengaja tetap bahasa Inggris — nilainya masuk langsung ke prompt
 // image model (kualitas hasil lebih konsisten dalam EN); hanya label UI yang ID.
 const THEMES = ['Rustic', 'Modern', 'Traditional', 'Garden', 'Glamorous', 'Bohemian', 'Minimalist']
@@ -69,15 +86,26 @@ export default function WizardPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const { createProject, updateProject, getProject } = useProjects()
-  const teaserNotes = location.state?.teaserNotes
-  const teaserReference = location.state?.teaserReference
+  const [teaserHandoff] = useState(peekTeaserHandoff)
+  const teaserNotes = location.state?.teaserNotes ?? teaserHandoff.notes
+  const teaserReference = location.state?.teaserReference ?? teaserHandoff.reference
   const editProjectId = location.state?.editProjectId
   const editProject = editProjectId ? getProject(editProjectId) : null
 
-  const [draft, setDraft] = useState(() =>
-    editProject ? draftFromProject(editProject) : readDraft() ?? defaultDraft(teaserNotes, teaserReference),
-  )
+  const [draft, setDraft] = useState(() => {
+    if (editProject) return draftFromProject(editProject)
+    // A fresh teaser is explicit, just-now intent — it must win over a
+    // stale leftover draft from a previously abandoned wizard visit,
+    // otherwise the prompt someone just typed on the landing page silently
+    // vanishes behind old session state.
+    if (teaserNotes || teaserReference) return defaultDraft(teaserNotes, teaserReference)
+    return readDraft() ?? defaultDraft()
+  })
   const [view, setView] = useState('form') // 'form' | 'preview'
+  useEffect(() => {
+    if (teaserHandoff.notes || teaserHandoff.reference) sessionStorage.removeItem(TEASER_HANDOFF_KEY)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [errors, setErrors] = useState({})
   const [prompt, setPrompt] = useState('')
   const [promptDirty, setPromptDirty] = useState(false)

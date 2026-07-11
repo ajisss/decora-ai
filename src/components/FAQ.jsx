@@ -4,10 +4,10 @@ import SectionHeading from './SectionHeading.jsx'
 export default function FAQ({ data }) {
   const [open, setOpen] = useState(0)
   return (
-    <section id="faq" className="border-t border-paper-line bg-paper-soft py-20 md:py-28">
+    <section id="faq" className="scroll-mt-20 border-t border-paper-line bg-paper-soft section-y">
       <div className="container-content max-w-3xl">
-        <SectionHeading eyebrow={data.eyebrow} title={data.title} />
-        <div className="mt-12 divide-y divide-paper-line overflow-hidden rounded-xl2 border border-paper-line bg-white">
+        <SectionHeading title={data.title} />
+        <div className="mt-16 divide-y divide-paper-line overflow-hidden rounded-xl2 border border-paper-line bg-white">
           {data.items.map((item, i) => {
             const isOpen = open === i
             return (

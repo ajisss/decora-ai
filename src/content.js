@@ -13,57 +13,34 @@ export const content = {
   ],
 
   hero: {
-    eyebrow: 'Desain Dekorasi Wedding, Dibantu AI',
     headline: 'Ketik dekorasi impianmu, lihat langsung jadi gambar.',
-    sub: 'Masukin gaya, budaya, warna, dan budget yang kamu mau — AI langsung generate visualnya dalam hitungan detik. Buat dibayangkan matang, dipakai presentasi, atau negosiasi vendor. Butuh hasil final rapi? Serahkan ke tim.',
-    ctaPrimary: 'Buat Desain Wedding',
-    ctaSecondary: 'Lihat Contoh Hasil',
-    stat: [
-      { value: 'Langsung jadi', label: 'Ketik → gambar dalam detik' },
-      { value: 'Paham budaya lokal', label: 'Gebyok, paes ageng, janur, dst' },
-      { value: 'Upgrade ke tim', label: 'Untuk aset final siap pakai' },
-    ],
+    sub: 'Sebutkan gaya, adat, warna, dan budgetmu — AI langsung menyusun visualnya, siap kamu tunjukkan ke pasangan, keluarga, atau vendor.',
+    ctaPrimary: 'Buat Desain Pernikahan',
   },
 
   problems: {
-    eyebrow: 'Kenapa ini bantu kamu',
-    title: 'Susah membayangkan hasil sebelum keluar budget.',
-    items: [
-      {
-        title: 'Trial-error yang mahal',
-        body: 'Susah membayangkan hasil dekorasi sebelum booking vendor atau presentasi ke klien. Sekarang tinggal ketik, kamu lihat bayangannya dulu — tanpa coba-coba mahal.',
-      },
-      {
-        title: 'Susah bilang "aku mau seperti ini"',
-        body: 'Butuh sesuatu yang bisa dipakai buat negosiasi atau presentasi, tanpa harus sewa decorator penuh dulu. Generate gambarnya sendiri, tunjukin langsung.',
-      },
-      {
-        title: 'Referensi online sering gak nyambung',
-        body: 'Pinterest & tools generic sering gak sesuai budget, gaya lokal, atau kombinasi budaya yang kamu mau — termasuk Jawa × modern. Di sini kamu tentukan sendiri.',
-      },
-    ],
+    lead: 'Jangan cuma membayangkan — lihat dulu hasilnya, sebelum satu rupiah pun keluar.',
+    body: 'Dari ide yang masih samar sampai visual yang bisa kamu tunjukkan — ke pasangan, ke keluarga, ke vendor. Desain dulu, baru putuskan.',
   },
 
   howItWorks: {
-    eyebrow: 'Cara kerja',
-    title: 'Dari ketikan, jadi gambar nyata.',
-    sub: 'Coba sepuasnya sampai nemu yang sreg. Butuh hasil final rapi? Serahkan ke tim.',
+    titleLead: 'Dari ketikan, jadi ',
+    titleAccent: 'gambar nyata.',
+    sub: 'Dari gagasan awal sampai aset siap dibawa ke vendor — lima langkah, masing-masing dengan detail dan contohnya sendiri.',
   },
 
   packages: {
-    eyebrow: 'Paket & harga',
-    title: 'Coba gratis, upgrade kalau butuh lebih.',
-    sub: 'Mulai gratis buat generate sendiri. Volume rutin atau butuh hasil final rapi? Ada paket buat itu.',
-    note: 'Halaman pra-validasi — harga di bawah ilustrasi, mesin generate masih dalam pengembangan.',
+    title: 'Coba gratis, upgrade sesuai kebutuhan.',
+    sub: 'Mulai gratis dan generate sendiri. Untuk volume rutin atau hasil final yang rapi, tersedia paket lanjutan.',
     plans: [
       {
         name: 'Gratis',
         price: 'Rp0',
-        tagline: 'Coba generate dekorasi impianmu',
+        tagline: 'Langkah pertama menuju desainmu',
         featured: false,
         features: [
           'Beberapa generate per hari',
-          'Gaya & budaya dasar',
+          'Gaya dan budaya dasar',
           'Resolusi standar (ada watermark)',
           'Simpan hasil favorit',
         ],
@@ -72,100 +49,119 @@ export const content = {
       {
         name: 'Plus',
         price: 'Langganan bulanan',
-        tagline: 'Generate lebih bebas, hasil lebih bagus',
+        tagline: 'Generate lebih leluasa, hasil lebih maksimal',
         featured: true,
         features: [
           'Generate tanpa batas wajar',
           'Resolusi HD tanpa watermark',
-          'Semua gaya & kombinasi budaya',
-          'Riwayat & simpan banyak konsep',
+          'Semua gaya dan kombinasi budaya',
+          'Riwayat dan simpan banyak konsep',
         ],
         cta: 'Mulai Plus',
       },
       {
         name: 'Aset Final (Tim)',
         price: 'Per project',
-        tagline: 'Dikerjain tim, siap presentasi & produksi',
+        tagline: 'Dikerjakan tim, siap presentasi dan produksi',
         featured: false,
         features: [
           'Finalisasi jadi vector rapi berlayer',
           'Dikurasi pakem budaya oleh manusia',
           'Mockup presentasi siap pakai',
-          'Revisi terbatas termasuk',
+          'Termasuk revisi terbatas',
         ],
-        cta: 'Serahkan ke Tim',
+        cta: 'Pesan Aset Final',
       },
     ],
   },
 
   testimonials: {
-    eyebrow: 'Kata mereka',
-    title: 'Dipakai buat bayangin hasil sebelum keluar budget.',
-    items: [
+    title: 'Kata mereka yang sudah mencoba.',
+    // Dua kolom audiens (PRODUCT.md: calon pengantin & pro dekorasi). Semua item
+    // kartu testimoni: quote + highlight frasa kunci + name + role.
+    columns: [
       {
-        quote: 'Aku ketik bayangan dekorasiku, langsung muncul gambarnya. Nunjukin ke vendor jadi gampang banget — gak perlu ribet jelasin.',
-        name: 'Dinda & Bagas',
-        role: 'Menikah 2026, Jawa × modern',
+        label: 'Calon Pengantin',
+        items: [
+          {
+            quote: 'Aku ketik bayangan dekorasiku, langsung muncul gambarnya. Nunjukin ke vendor jadi gampang banget — gak perlu ribet jelasin.',
+            highlight: 'gak perlu ribet jelasin',
+            name: 'Dinda & Bagas',
+            role: 'Menikah 2026, Jawa × modern',
+          },
+          {
+            quote: 'Suamiku maunya Jawa, aku maunya minimalis. Di sini kita racik dua-duanya jadi satu gambar — langsung sreg, langsung deal.',
+            highlight: 'jadi satu gambar',
+            name: 'Ayu & Reza',
+            role: 'Menikah 2025, Jawa × minimalis',
+          },
+          {
+            quote: 'Sebelum keluar DP ke vendor, aku udah lihat bayangannya dulu. Jadi gak takut hasilnya meleset dari yang aku mau.',
+            highlight: 'gak takut hasilnya meleset',
+            name: 'Nadia',
+            role: 'Calon pengantin, Bandung',
+          },
+        ],
       },
       {
-        quote: 'Tinggal ketik gaya yang klien mau, beberapa detik udah ada opsi visual buat presentasi. Yang final tinggal gue serahkan ke tim.',
-        name: 'Rangga P.',
-        role: 'Owner, studio dekorasi (Yogyakarta)',
-      },
-      {
-        quote: 'Enaknya paham istilah adat. Ketik "paes ageng" langsung nyambung — gak keluar hasil ngawur kayak tools generic.',
-        name: 'Sekar A.',
-        role: 'Freelance wedding decorator',
+        label: 'Vendor & Decorator',
+        items: [
+          {
+            quote: 'Tinggal ketik gaya yang klien mau, beberapa detik udah ada opsi visual buat presentasi. Yang final tinggal gue serahkan ke tim.',
+            highlight: 'beberapa detik udah ada opsi visual',
+            name: 'Rangga P.',
+            role: 'Owner studio dekorasi, Yogyakarta',
+          },
+          {
+            quote: 'Enaknya paham istilah adat. Ketik "paes ageng" langsung nyambung — gak keluar hasil ngawur kayak tools generic.',
+            highlight: 'langsung nyambung',
+            name: 'Sekar A.',
+            role: 'Freelance wedding decorator',
+          },
+          {
+            quote: 'Buat pitch klien baru, aku gak perlu begadang bikin mockup lagi. Beberapa opsi visual udah cukup buat klien milih arah.',
+            highlight: 'gak perlu begadang bikin mockup',
+            name: 'Bimo',
+            role: 'Wedding organizer, Surabaya',
+          },
+        ],
       },
     ],
   },
 
   faq: {
-    eyebrow: 'FAQ',
-    title: 'Pertanyaan yang sering ditanyakan.',
+    title: 'Pertanyaan yang sering muncul.',
     items: [
       {
-        q: 'Ini beneran langsung jadi gambar?',
-        a: 'Ya. Ketik gaya, budaya, warna, dan elemen yang kamu mau — AI menghasilkan visual dekorasinya dalam hitungan detik. Bisa diutak-atik dan generate ulang sampai pas.',
+        q: 'Resolusi hasilnya seperti apa?',
+        a: 'Paket Gratis menghasilkan resolusi standar dengan watermark — cukup untuk dibayangkan dan didiskusikan. Paket Plus memberi resolusi HD tanpa watermark, siap dipakai untuk presentasi resmi atau dibagikan ke vendor.',
       },
       {
         q: 'Apakah ini menggantikan jasa decorator?',
-        a: 'Bukan. Ini bantu kamu membayangkan matang dan presentasi/negosiasi lebih jelas. Eksekusi fisik tetap oleh vendor/decorator. Butuh hasil rapi siap produksi? Upgrade ke opsi tim.',
+        a: 'Bukan. Decora AI membantumu memantapkan konsep dan mempermudah presentasi atau negosiasi. Eksekusi fisik tetap dilakukan vendor atau decorator pilihanmu. Untuk hasil siap produksi, tersedia opsi tim.',
       },
       {
         q: 'Seberapa akurat dengan pakem budaya?',
-        a: 'AI kami dilatih paham gaya & istilah lokal, jauh lebih nyambung dari tools generic. Untuk yang benar-benar pakem & siap produksi, opsi tim — manusia berpengalaman adat — jadi quality gate.',
+        a: 'AI kami dilatih khusus mengenali istilah dan gaya dekorasi Nusantara — gebyok, paes ageng, janur, dan sejenisnya. Untuk hasil yang benar-benar sesuai pakem dan siap produksi, tim kami yang berpengalaman dalam adat menjadi lapisan kurasi terakhir.',
       },
       {
         q: 'Bisa dipakai komersial?',
         a: 'Bisa. Hasil generate maupun aset final boleh dipakai untuk presentasi, proposal, maupun negosiasi ke klien atau vendor.',
       },
       {
-        q: 'Kalau hasil generate belum pas gimana?',
-        a: 'Ubah keinginanmu dan generate lagi — sepuasnya di paket berbayar. Atau serahkan ke tim untuk penyempurnaan oleh manusia.',
+        q: 'Kalau hasilnya belum sesuai, bagaimana?',
+        a: 'Ubah deskripsimu dan generate ulang — sebanyak yang kamu butuhkan di paket berbayar. Kalau masih belum pas, tim kami siap menyempurnakannya secara langsung.',
       },
     ],
   },
 
   generator: {
-    eyebrow: 'Coba sekarang',
-    title: 'Tulis keinginanmu, lihat hasilnya.',
-    sub: 'Makin detail — gaya, budaya, warna, elemen wajib — makin nyambung hasilnya.',
-    placeholder: 'Contoh: pelaminan Jawa modern, dominan putih & emas, ada gebyok ukir & janur, nuansa hangat, budget menengah',
-    chips: ['Jawa Klasik', 'Jawa × Modern', 'Rustic Garden', 'Sunda', 'Intimate', 'Nasional'],
-    button: 'Generate',
-    loading: 'AI lagi meracik konsepmu…',
-    emptyHint: 'Tulis keinginanmu di sebelah kiri, hasilnya muncul di sini.',
-    resultTitle: 'Hasil generate',
-    resultHint: 'Suka hasilnya? Utak-atik lagi, atau sempurnakan dengan tim.',
-    regenerate: 'Generate lagi',
-    upgradeCta: 'Sempurnakan dengan tim',
-    note: 'Hasil ini ilustratif — mesin generate AI masih dalam pengembangan. Daftar buat jadi yang pertama coba versi aslinya.',
+    placeholder: 'Contoh: pelaminan Jawa modern, dominan putih dan emas, dengan gebyok ukir dan janur, nuansa hangat, budget menengah',
   },
 
   reference: {
     label: 'Referensi gambar (opsional)',
-    hint: 'Upload foto lokasi, Pinterest, atau referensi gaya yang kamu suka',
+    hint: 'Unggah foto lokasi, Pinterest, atau referensi gaya yang kamu suka',
     add: 'Tambah gambar referensi',
     change: 'Ganti gambar',
     remove: 'Hapus',
@@ -462,29 +458,55 @@ export const content = {
   },
 
   stepsList: [
-    { icon: 'brief', title: 'Tulis keinginan', body: 'Ketik gaya, budaya, warna, elemen wajib, dan budget. Bisa pilih dari contoh gaya biar cepat.' },
-    { icon: 'spark', title: 'AI generate gambar', body: 'Dalam hitungan detik, keluar beberapa opsi visual dekorasi yang paham gaya & istilah lokal.' },
-    { icon: 'revise', title: 'Utak-atik langsung', body: 'Belum pas? Ubah keinginanmu dan generate ulang — sepuasnya sampai nemu yang sreg.' },
-    { icon: 'deliver', title: 'Pakai buat vendor', body: 'Simpan gambar & mockup buat dibayangkan matang dan dipakai negosiasi dengan vendor.' },
-    { icon: 'produce', title: 'Sempurnakan dengan tim', body: 'Opsional — upgrade biar dikerjain tim jadi aset rapi, dikurasi pakem budaya oleh manusia.', optional: true },
+    {
+      icon: 'brief',
+      title: 'Tulis keinginan',
+      body: 'Tuliskan gaya, adat, warna, elemen wajib, dan budget kamu. Atau pilih langsung dari contoh gaya yang tersedia.',
+      breakdown: ['Pilih gaya dan adat dari contoh', 'Unggah foto referensi (opsional)', 'Tentukan budget, jumlah tamu, dan palet warna'],
+    },
+    {
+      icon: 'spark',
+      title: 'AI merancang visualnya',
+      body: 'Dalam hitungan detik, beberapa opsi visual siap — memahami istilah dan gaya adat, bukan sekadar templat generik.',
+      breakdown: ['Beberapa opsi dalam satu proses', 'Mengenali istilah gebyok, paes ageng, janur', 'Gaya lokal yang autentik'],
+    },
+    {
+      icon: 'revise',
+      title: 'Utak-atik sampai pas',
+      body: 'Belum sesuai? Ubah sedikit, generate ulang — sebanyak yang kamu perlukan sampai hasilnya tepat.',
+      breakdown: ['Ubah prompt dan generate ulang', 'Bandingkan beberapa versi', 'Simpan yang paling sesuai'],
+    },
+    {
+      icon: 'checklist',
+      title: 'Bedah tiap elemen',
+      body: 'AI menguraikan gambar menjadi daftar elemen dekorasi — pelaminan, kursi, meja, backdrop, pencahayaan — lengkap dengan perkiraan biaya, siap dikirim ke vendor.',
+      breakdown: ['Elemen terdeteksi otomatis', 'Estimasi biaya per item', 'Brief siap dikirim ke vendor'],
+    },
+    {
+      icon: 'produce',
+      title: 'Upgrade ke tim',
+      body: 'Opsional: desain pilihanmu disempurnakan oleh tim menjadi aset final — vector berlayer, dikurasi sesuai pakem adat.',
+      breakdown: ['Vector rapi dan berlayer', 'Dikurasi sesuai pakem adat', 'Mockup presentasi siap pakai'],
+      optional: true,
+    },
   ],
 
   gallery: {
-    eyebrow: 'Contoh hasil',
-    title: 'Dari ketikan singkat, jadi gambar.',
-    sub: 'Beberapa contoh: tulis keinginanmu, keluar visual dekorasinya — tinggal pakai atau sempurnakan.',
+    title: 'Ragam padu padan budaya.',
+    sub: 'Setiap kombinasi jadi satu visual dekorasi utuh, dalam hitungan detik.',
+    // photo = index ke MOCK_PHOTOS (src/lib/mockPhotos.js)
     items: [
-      { tag: 'Jawa Klasik', prompt: '"Gebyok + paes ageng, emas"', result: 'Pelaminan Jawa klasik' },
-      { tag: 'Jawa × Modern', prompt: '"Panggung minimalis, putih"', result: 'Dekorasi modern' },
-      { tag: 'Rustic Garden', prompt: '"Taman, kayu & bunga liar"', result: 'Dekorasi taman' },
-      { tag: 'Sunda', prompt: '"Pelaminan Sunda, hangat"', result: 'Pelaminan Sunda' },
-      { tag: 'Intimate', prompt: '"Intimate, lilin & putih"', result: 'Dekorasi intimate' },
-      { tag: 'Nasional', prompt: '"Pelaminan megah, merah emas"', result: 'Pelaminan nasional' },
+      { name: 'Gebyok Priangan', style: 'Jawa × Sunda', photo: 0 },
+      { name: 'Bali Kontemporer', style: 'Bali × Modern', photo: 1 },
+      { name: 'Rumah Gadang Alami', style: 'Minang × Rustic', photo: 2 },
+      { name: 'Keraton Nusantara', style: 'Jawa × Nasional', photo: 3 },
+      { name: 'Betawi Segar', style: 'Betawi × Tropis', photo: 4 },
+      { name: 'Saung Modern', style: 'Sunda × Kontemporer', photo: 0 },
     ],
   },
 
   footer: {
-    tagline: 'Ketik dekorasi impianmu, lihat langsung jadi gambar. Butuh hasil final rapi, tim siap bantu.',
-    note: 'Status: pra-validasi. Halaman ini untuk mengukur minat. Generator & form belum aktif.',
+    tagline: 'Ketik dekorasi impianmu, lihat langsung jadi gambar. Untuk hasil final yang rapi, tim kami siap membantu.',
+    note: 'Versi awal — generate dan simpan desain sudah bisa dicoba. Pembayaran dan opsi tim akan segera menyusul.',
   },
 }

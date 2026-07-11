@@ -30,7 +30,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['Karla', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['"Fraunces"', 'Georgia', 'serif'],
       },
       maxWidth: {
