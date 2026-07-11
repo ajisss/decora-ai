@@ -486,7 +486,7 @@ export default function StudioPage() {
                     {referenceEntry && (
                       <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">
                         <img
-                          src={`/images/${referenceEntry.imageId}`}
+                          src={referenceEntry.imageId}
                           alt=""
                           className="h-7 w-7 rounded-full object-cover"
                         />
@@ -740,14 +740,14 @@ export default function StudioPage() {
 
             <div className="relative mt-4 aspect-[4/3] w-full select-none overflow-hidden rounded-xl2 bg-white/5">
               <img
-                src={`/images/${compareEntries[0].imageId}`}
+                src={compareEntries[0].imageId}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
                 draggable={false}
               />
               <div className="absolute inset-0 overflow-hidden" style={{ clipPath: `inset(0 ${100 - comparePct}% 0 0)` }}>
                 <img
-                  src={`/images/${compareEntries[1].imageId}`}
+                  src={compareEntries[1].imageId}
                   alt=""
                   className="absolute inset-0 h-full w-full object-cover"
                   draggable={false}

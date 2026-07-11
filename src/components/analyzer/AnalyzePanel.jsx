@@ -126,10 +126,10 @@ export default function AnalyzePanel({ projectId, generation, versionNumber, onJ
           </div>
           <button
             type="button"
-            onClick={() => setZoomSrc(`/images/${generation.imageId}`)}
+            onClick={() => setZoomSrc(generation.imageId)}
             className="mt-1.5 block w-full overflow-hidden rounded-xl2 border-2 border-clay/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
           >
-            <img src={`/images/${generation.imageId}`} alt="" className="aspect-video w-full object-cover" />
+            <img src={generation.imageId} alt="" className="aspect-video w-full object-cover" />
           </button>
         </div>
       )}

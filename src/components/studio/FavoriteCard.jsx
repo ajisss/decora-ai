@@ -70,7 +70,7 @@ export default function FavoriteCard({ entry, versionNumber, projectId, onJumpTo
         onClick={onJumpToFeed}
         className="mt-2 block w-full overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
       >
-        <img src={`/images/${entry.imageId}`} alt="" className="aspect-[4/3] w-full object-cover" />
+        <img src={entry.imageId} alt="" className="aspect-[4/3] w-full object-cover" />
       </button>
 
       <p className="mt-2 text-sm text-ink-soft">
