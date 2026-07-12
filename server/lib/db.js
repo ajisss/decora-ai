@@ -41,4 +41,14 @@ export async function migrate() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `
+
+  // `projects` predates auth — this table already existed with no owner
+  // column, so ADD COLUMN IF NOT EXISTS instead of folding it into the
+  // CREATE TABLE above (which only runs for a brand-new table).
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(id) ON DELETE CASCADE`
+  await sql`CREATE INDEX IF NOT EXISTS projects_user_id_idx ON projects (user_id)`
+  // Plan mode (routes/plan.js) predates this table's normalization too —
+  // it wrote project.messages, which store.js silently dropped since it
+  // had no column to land in.
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS messages JSONB NOT NULL DEFAULT '[]'::jsonb`
 }

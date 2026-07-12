@@ -4,8 +4,10 @@ import { waitUntil } from '@vercel/functions'
 import { getProject, saveProject, saveImage, readImage, readUpload } from '../lib/store.js'
 import { generateImage, editImage } from '../lib/imaginer.js'
 import { mockGenerateImage, MOCK_AI_ENABLED } from '../lib/mockAi.js'
+import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = Router()
+router.use(requireAuth)
 const DAILY_CAP = process.env.GENERATION_DAILY_CAP ? Number(process.env.GENERATION_DAILY_CAP) : 20
 
 function todayCount(project) {
@@ -31,7 +33,7 @@ async function loadReference(referenceGenerationImageId, referenceImageId) {
 // the background; the client discovers completion via GET /api/projects/:id
 // polling — the same recovery path that already handles a page refresh
 // mid-generation (wireflow §5.3 / tasks.md G12).
-async function runGenerationInBackground(projectId, generationId, effectivePrompt, reference) {
+async function runGenerationInBackground(projectId, userId, generationId, effectivePrompt, reference) {
   let status = 'done'
   let imageId = null
   let error = null
@@ -56,7 +58,7 @@ async function runGenerationInBackground(projectId, generationId, effectivePromp
 
   // Re-read the project so this update doesn't clobber unrelated edits
   // (checklist changes, rename, etc.) made while generation was in flight.
-  const latest = await getProject(projectId)
+  const latest = await getProject(projectId, userId)
   if (!latest) return // project deleted mid-generation
   const generation = latest.generations.find((g) => g.id === generationId)
   if (!generation) return
@@ -65,7 +67,7 @@ async function runGenerationInBackground(projectId, generationId, effectivePromp
   generation.imageId = imageId
   generation.error = error
   latest.updatedAt = new Date().toISOString()
-  await saveProject(latest)
+  await saveProject(latest, userId)
 
   console.log(`[generate] project=${projectId} status=${status} today=${todayCount(latest)}/${DAILY_CAP}`)
 }
@@ -76,7 +78,7 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: { message: 'projectId and prompt are required', code: 'bad_request' } })
   }
 
-  const project = await getProject(projectId)
+  const project = await getProject(projectId, req.user.id)
   if (!project) return res.status(404).json({ error: { message: 'Project not found', code: 'not_found' } })
 
   // G1: one generation at a time per project.
@@ -105,7 +107,7 @@ router.post('/', async (req, res) => {
   }
   project.generations.unshift(generation)
   project.updatedAt = new Date().toISOString()
-  await saveProject(project)
+  await saveProject(project, req.user.id)
 
   // R3/R4: a reference image (wizard upload, or a prior "Use as reference" design)
   // guides generation via the image-to-image model instead of plain text-to-image.
@@ -116,7 +118,7 @@ router.post('/', async (req, res) => {
   // Respond immediately with the pending entry; the client polls for the result.
   res.json({ generation, project })
 
-  waitUntil(runGenerationInBackground(projectId, generation.id, effectivePrompt, reference))
+  waitUntil(runGenerationInBackground(projectId, req.user.id, generation.id, effectivePrompt, reference))
 })
 
 // Client-visible cancel: the background job can't truly abort an in-flight
@@ -125,7 +127,7 @@ router.post('/', async (req, res) => {
 // a late result from overwriting this once the job does resolve.
 router.post('/cancel', async (req, res) => {
   const { projectId, generationId } = req.body ?? {}
-  const project = await getProject(projectId)
+  const project = await getProject(projectId, req.user.id)
   if (!project) return res.status(404).json({ error: { message: 'Project not found', code: 'not_found' } })
 
   const generation = project.generations.find((g) => g.id === generationId)
@@ -136,7 +138,7 @@ router.post('/cancel', async (req, res) => {
 
   generation.status = 'cancelled'
   project.updatedAt = new Date().toISOString()
-  await saveProject(project)
+  await saveProject(project, req.user.id)
   res.json({ generation })
 })
 

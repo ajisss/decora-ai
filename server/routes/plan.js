@@ -2,8 +2,10 @@ import { Router } from 'express'
 import { nanoid } from 'nanoid'
 import { getProject, saveProject } from '../lib/store.js'
 import { planReply } from '../lib/planner.js'
+import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = Router()
+router.use(requireAuth)
 
 // Plan mode: a free-text advisory turn. Unlike /generate this is synchronous and
 // spend-free — the chat endpoint returns in seconds — so no background job or
@@ -16,7 +18,7 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: { message: 'projectId and message are required', code: 'bad_request' } })
   }
 
-  const project = await getProject(projectId)
+  const project = await getProject(projectId, req.user.id)
   if (!project) return res.status(404).json({ error: { message: 'Project not found', code: 'not_found' } })
 
   const now = new Date().toISOString()
@@ -44,7 +46,7 @@ router.post('/', async (req, res) => {
   const assistantMessage = { id: nanoid(), role: 'assistant', text: reply, createdAt: new Date().toISOString() }
   project.messages = [...history, assistantMessage]
   project.updatedAt = new Date().toISOString()
-  await saveProject(project)
+  await saveProject(project, req.user.id)
 
   res.json({ messages: project.messages })
 })

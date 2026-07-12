@@ -1,12 +1,14 @@
 import { Router } from 'express'
 import { getProject, saveProject, readImage } from '../lib/store.js'
 import { analyzeImage } from '../lib/vision.js'
+import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = Router()
+router.use(requireAuth)
 
 router.post('/', async (req, res) => {
   const { projectId, generationId } = req.body ?? {}
-  const project = await getProject(projectId)
+  const project = await getProject(projectId, req.user.id)
   if (!project) return res.status(404).json({ error: { message: 'Project not found', code: 'not_found' } })
 
   const generation = project.generations.find((g) => g.id === generationId)
@@ -46,7 +48,7 @@ router.post('/', async (req, res) => {
 
     generation.analysis = { analyzedAt: new Date().toISOString(), items: [...detected, ...previousManual] }
     project.updatedAt = new Date().toISOString()
-    await saveProject(project)
+    await saveProject(project, req.user.id)
     res.json({ analysis: generation.analysis })
   } catch (err) {
     console.error('[analyze] failed:', err.code, err.message)

@@ -29,14 +29,15 @@ function toProject(row, generations) {
     name: row.name,
     prompt: row.prompt,
     setup: row.setup,
+    messages: row.messages ?? [],
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
     generations,
   }
 }
 
-export async function listProjects() {
-  const projectRows = await sql`SELECT * FROM projects ORDER BY updated_at DESC`
+export async function listProjects(userId) {
+  const projectRows = await sql`SELECT * FROM projects WHERE user_id = ${userId} ORDER BY updated_at DESC`
   if (projectRows.length === 0) return []
   const ids = projectRows.map((row) => row.id)
   const genRows = await sql`SELECT * FROM generations WHERE project_id = ANY(${ids}) ORDER BY created_at DESC`
@@ -49,8 +50,10 @@ export async function listProjects() {
   return projectRows.map((row) => toProject(row, byProject.get(row.id) ?? []))
 }
 
-export async function getProject(id) {
-  const projectRows = await sql`SELECT * FROM projects WHERE id = ${id}`
+// Scoped to `userId` so a project can't be fetched by guessing/knowing its
+// id alone — a missing owner match looks identical to a missing project.
+export async function getProject(id, userId) {
+  const projectRows = await sql`SELECT * FROM projects WHERE id = ${id} AND user_id = ${userId}`
   if (projectRows.length === 0) return null
   const genRows = await sql`SELECT * FROM generations WHERE project_id = ${id} ORDER BY created_at DESC`
   return toProject(projectRows[0], genRows.map(toGeneration))
@@ -59,20 +62,25 @@ export async function getProject(id) {
 // Replaces the project row and its entire generations set in one atomic
 // transaction — readers (e.g. a background generation job re-reading the
 // project) must never observe a state where generations were deleted but not
-// yet reinserted.
-export async function saveProject(project) {
+// yet reinserted. The ON CONFLICT's WHERE guards against a (practically
+// impossible, ids are nanoid) cross-user id collision silently overwriting
+// someone else's project instead of erroring.
+export async function saveProject(project, userId) {
   const generations = project.generations ?? []
   const setup = JSON.stringify(project.setup ?? {})
+  const messages = JSON.stringify(project.messages ?? [])
 
   const queries = [
     sql`
-      INSERT INTO projects (id, name, prompt, setup, created_at, updated_at)
-      VALUES (${project.id}, ${project.name}, ${project.prompt ?? null}, ${setup}::jsonb, ${project.createdAt}, ${project.updatedAt})
+      INSERT INTO projects (id, user_id, name, prompt, setup, messages, created_at, updated_at)
+      VALUES (${project.id}, ${userId}, ${project.name}, ${project.prompt ?? null}, ${setup}::jsonb, ${messages}::jsonb, ${project.createdAt}, ${project.updatedAt})
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         prompt = EXCLUDED.prompt,
         setup = EXCLUDED.setup,
+        messages = EXCLUDED.messages,
         updated_at = EXCLUDED.updated_at
+      WHERE projects.user_id = EXCLUDED.user_id
     `,
     sql`DELETE FROM generations WHERE project_id = ${project.id}`,
     ...generations.map((g) => {
@@ -87,8 +95,8 @@ export async function saveProject(project) {
   return project
 }
 
-export async function deleteProject(id) {
-  await sql`DELETE FROM projects WHERE id = ${id}`
+export async function deleteProject(id, userId) {
+  await sql`DELETE FROM projects WHERE id = ${id} AND user_id = ${userId}`
 }
 
 // imageId / referenceImageId are now full Vercel Blob URLs — opaque to callers,

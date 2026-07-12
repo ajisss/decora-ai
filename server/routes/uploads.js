@@ -1,8 +1,10 @@
 import { Router } from 'express'
 import { nanoid } from 'nanoid'
 import { saveUpload } from '../lib/store.js'
+import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = Router()
+router.use(requireAuth)
 
 const ALLOWED_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
 const MAX_BYTES = 8 * 1024 * 1024
