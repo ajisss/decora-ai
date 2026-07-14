@@ -191,6 +191,7 @@ export function StepIcon({ name, className = 'h-6 w-6' }) {
         <path d="M21 12H9" />
       </>
     ),
+    menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   }
   return (
     <svg {...base} className={className} aria-hidden="true">
