@@ -5,6 +5,11 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Off-canvas drawers/panels (AppSidebar, Studio info panel) sit at
+       translate-x-full — without this, some browsers still count that
+       fixed-position offscreen box toward the document's scrollable
+       width, producing a phantom horizontal scrollbar on mobile. */
+    overflow-x: hidden;
   }
   body {
     @apply bg-paper text-ink font-sans antialiased;

@@ -50,12 +50,12 @@ export default function ProjectsPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-[1152px] px-6 py-12">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm text-ink-muted">{t.welcome(user?.name?.split(' ')[0] ?? '')}</p>
             <h1 className="mt-0.5 font-display text-3xl font-semibold text-ink">{t.title}</h1>
           </div>
-          <button type="button" onClick={() => navigate('/projects/new')} className="btn-primary">
+          <button type="button" onClick={() => navigate('/projects/new')} className="btn-primary shrink-0">
             {t.newProject}
           </button>
         </div>
@@ -96,27 +96,29 @@ export default function ProjectsPage() {
             {mostRecent && (
               <Link
                 to={`/studio/${mostRecent.id}`}
-                className="mt-6 flex items-center gap-4 rounded-xl2 border border-paper-line bg-paper p-4 transition-colors hover:border-clay/30"
+                className="mt-6 flex flex-col gap-3 rounded-xl2 border border-paper-line bg-paper p-4 transition-colors hover:border-clay/30 sm:flex-row sm:items-center sm:gap-4"
               >
-                {mostRecentThumb ? (
-                  <img
-                    src={mostRecentThumb.imageId}
-                    alt=""
-                    className="h-16 w-20 shrink-0 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="flex h-16 w-20 shrink-0 items-center justify-center rounded-lg bg-paper-soft text-ink-muted">
-                    <StepIcon name="image" className="h-6 w-6" />
+                <div className="flex min-w-0 items-center gap-4">
+                  {mostRecentThumb ? (
+                    <img
+                      src={mostRecentThumb.imageId}
+                      alt=""
+                      className="h-16 w-20 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-20 shrink-0 items-center justify-center rounded-lg bg-paper-soft text-ink-muted">
+                      <StepIcon name="image" className="h-6 w-6" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium uppercase tracking-wide text-ink-muted">{t.continueTitle}</p>
+                    <p className="truncate font-display text-lg font-semibold text-ink">{mostRecent.name}</p>
+                    <p className="truncate text-xs text-ink-muted">
+                      {t.continueUpdated} {new Date(mostRecent.updatedAt).toLocaleDateString('id-ID')}
+                    </p>
                   </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">{t.continueTitle}</p>
-                  <p className="truncate font-display text-lg font-semibold text-ink">{mostRecent.name}</p>
-                  <p className="text-xs text-ink-muted">
-                    {t.continueUpdated} {new Date(mostRecent.updatedAt).toLocaleDateString('id-ID')}
-                  </p>
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-clay-deep">{t.continueCta}</span>
+                <span className="shrink-0 self-end text-sm font-semibold text-clay-deep sm:self-auto">{t.continueCta}</span>
               </Link>
             )}
           </>

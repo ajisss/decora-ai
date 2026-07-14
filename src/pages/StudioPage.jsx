@@ -19,6 +19,7 @@ import { api } from '../api/client.js'
 import { content } from '../content.js'
 
 const t = content.app.studio
+const mqMobile = '(max-width: 1023px)'
 const tc = content.app.compare
 
 // Per-project feed scroll offsets, kept for the life of the tab so navigating
@@ -41,6 +42,16 @@ export default function StudioPage() {
   const modeMenuRef = useRef(null)
   const [composerImage, setComposerImage] = useState(null) // data URL — freshly uploaded reference, distinct from "Jadikan referensi" on a past design
   const [rightTab, setRightTab] = useState('informasi')
+  const [rightPanelOpen, setRightPanelOpen] = useState(false)
+  const [mobile, setMobile] = useState(() => window.matchMedia(mqMobile).matches)
+
+  useEffect(() => {
+    const m = window.matchMedia(mqMobile)
+    const on = () => setMobile(m.matches)
+    on()
+    m.addEventListener?.('change', on)
+    return () => m.removeEventListener?.('change', on)
+  }, [])
   const [favoriteQuery, setFavoriteQuery] = useState('')
   // Store ids, not the generation objects themselves — the objects go stale
   // the moment context updates (e.g. an item-image finishing while the panel
@@ -356,16 +367,25 @@ export default function StudioPage() {
         {announcement}
       </div>
       <div className="flex h-[calc(100vh-56px)]">
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <main ref={mainRef} className="flex-1 overflow-y-auto p-6">
-            <div className="mx-auto mb-6 flex max-w-[720px] items-center justify-between">
-              <div>
-                <h1 className="font-display text-xl font-semibold text-ink">{project.name}</h1>
+            <div className="mx-auto mb-6 flex max-w-[720px] items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h1 className="truncate font-display text-xl font-semibold text-ink">{project.name}</h1>
                 <p className="text-xs text-ink-muted">
                   {generations.length} {t.design.toLowerCase()} ·{' '}
                   {new Date(project.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => setRightPanelOpen(true)}
+                aria-label={t.tabInformasi}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-clay/40 hover:text-clay-deep lg:hidden"
+              >
+                <StepIcon name="checklist" className="h-3.5 w-3.5" />
+                {t.tabInformasi}
+              </button>
             </div>
             {timeline.length === 0 ? (
               <div className="flex items-center justify-center py-10">
@@ -434,7 +454,7 @@ export default function StudioPage() {
 
           <div className="shrink-0 px-4 pb-4 pt-2">
             <div className="mx-auto max-w-[720px]">
-              <div className="flex items-end gap-2 rounded-2xl border border-paper-line bg-paper p-2 shadow-lg shadow-ink/5">
+              <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-paper-line bg-paper p-2 shadow-lg shadow-ink/5">
                 {/* Mode switch: Rencana (advisor, gratis) vs Buat gambar (generate),
                     folded into the composer as a dropdown. Default = Buat gambar so
                     the original one-shot flow is unchanged. */}
@@ -514,7 +534,7 @@ export default function StudioPage() {
                     }
                   }}
                   placeholder={mode === 'plan' ? t.planPlaceholder : t.composerPlaceholder}
-                  className="max-h-24 flex-1 resize-none bg-transparent px-2 py-2 text-sm focus:outline-none"
+                  className="min-w-[140px] max-h-24 flex-1 resize-none bg-transparent px-2 py-2 text-sm focus:outline-none"
                 />
                 {(() => {
                   const busy = mode === 'plan' ? isPlanPending : isPending
@@ -544,17 +564,35 @@ export default function StudioPage() {
           </div>
         </div>
 
-        <aside className="hidden w-96 shrink-0 flex-col border-l border-paper-line bg-paper-soft lg:flex">
-          <div className="p-3">
-            <SegmentedControl
-              options={[
-                { value: 'informasi', label: t.tabInformasi },
-                { value: 'history', label: t.tabHistory },
-                { value: 'favorit', label: t.tabFavorite },
-              ]}
-              value={rightTab}
-              onChange={setRightTab}
-            />
+        {rightPanelOpen && (
+          <div className="fixed inset-0 z-40 bg-ink/30 lg:hidden" onClick={() => setRightPanelOpen(false)} aria-hidden="true" />
+        )}
+        <aside
+          inert={mobile && !rightPanelOpen ? '' : undefined}
+          className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm shrink-0 flex-col border-l border-paper-line bg-paper-soft transition-transform duration-200 lg:static lg:z-auto lg:w-96 lg:max-w-none lg:flex lg:translate-x-0 ${
+            rightPanelOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex items-center gap-2 p-3">
+            <div className="min-w-0 flex-1">
+              <SegmentedControl
+                options={[
+                  { value: 'informasi', label: t.tabInformasi },
+                  { value: 'history', label: t.tabHistory },
+                  { value: 'favorit', label: t.tabFavorite },
+                ]}
+                value={rightTab}
+                onChange={setRightTab}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setRightPanelOpen(false)}
+              aria-label={t.lightboxClose}
+              className="shrink-0 rounded-md p-1.5 text-ink-muted hover:bg-paper hover:text-ink lg:hidden"
+            >
+              <StepIcon name="close" className="h-4 w-4" />
+            </button>
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-4">
             {rightTab === 'informasi' ? (
@@ -785,7 +823,7 @@ export default function StudioPage() {
 
             <div className="mt-4 rounded-xl2 bg-white/5 p-4 text-white">
               <p className="text-sm font-semibold">{tc.diffTitle}</p>
-              <div className="mt-2 grid grid-cols-2 gap-4">
+              <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {compareEntries.map((g, i) => (
                   <div key={g.id}>
                     <p className="flex items-center gap-1 text-xs text-white/60">
