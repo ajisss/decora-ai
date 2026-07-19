@@ -20,15 +20,11 @@ export default function AppShell({ projectName, children }) {
   const section = SECTION_LABELS.find((s) => pathname.startsWith(s.prefix))
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // The Design Workspace needs maximum horizontal space, so the sidebar
-  // auto-collapses to icon-only there. `manualOverride` lets the user flip
-  // that for the current route; it resets to the route's default (collapsed
-  // in Studio, expanded elsewhere) on every navigation, per spec — the
-  // behavior is scoped to where you are, not a sticky global preference.
-  const autoCollapse = pathname.startsWith('/studio/')
-  const [manualOverride, setManualOverride] = useState(null)
-  useEffect(() => setManualOverride(null), [pathname])
-  const collapsed = manualOverride ?? autoCollapse
+  // Collapsible on any page, expanded by default. (The Design Workspace has
+  // its own shell — WorkspaceShell — and renders the sidebar with
+  // `forceCollapsed`, so there's no route special-casing here.)
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => setCollapsed(false), [pathname])
 
   return (
     <div className="flex h-screen bg-paper-line">
@@ -36,7 +32,7 @@ export default function AppShell({ projectName, children }) {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         collapsed={collapsed}
-        onToggleCollapse={() => setManualOverride(!collapsed)}
+        onToggleCollapse={() => setCollapsed((c) => !c)}
       />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-xl rounded-bl-xl bg-paper shadow-sm shadow-ink/5">
         <header className="sticky top-0 z-30 h-14 shrink-0 border-b border-paper-line bg-paper">

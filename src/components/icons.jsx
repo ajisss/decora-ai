@@ -207,6 +207,13 @@ export function StepIcon({ name, className = 'h-6 w-6' }) {
         <path d="M8 10.5h5M10.5 8v5" />
       </>
     ),
+    zoomOut: (
+      <>
+        <circle cx="10.5" cy="10.5" r="6.5" />
+        <path d="m20 20-4.3-4.3" />
+        <path d="M8 10.5h5" />
+      </>
+    ),
     frame: (
       <>
         <path d="M4 8V4h4" />

@@ -1,4 +1,4 @@
-import { useProjects } from '../../context/ProjectsContext.jsx'
+import { useProjects } from '../../../context/ProjectsContext.jsx'
 
 // Shared checklist-item mutations — extracted from AnalyzePanel so the new
 // Inspector's Object Properties panel can edit/remove the same item without

@@ -3,27 +3,26 @@ import { nanoid } from 'nanoid'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import AppShell from '../components/shell/AppShell.jsx'
 import { StepIcon } from '../components/icons.jsx'
+import WorkspaceShell from '../components/studio/WorkspaceShell.jsx'
+import WorkspaceHeader from '../components/studio/WorkspaceHeader.jsx'
 import ProjectRail from '../components/studio/ProjectRail.jsx'
 import DesignCanvas from '../components/studio/DesignCanvas.jsx'
 import Inspector from '../components/studio/Inspector.jsx'
-import AnalyzePanel from '../components/analyzer/AnalyzePanel.jsx'
-import BookmarkNameDialog from '../components/studio/BookmarkNameDialog.jsx'
+import ChecklistBriefPanel from '../components/studio/ChecklistBriefPanel.jsx'
+import EventInfoPanel from '../components/studio/EventInfoPanel.jsx'
+import useWorkspaceSelection from '../components/studio/useWorkspaceSelection.js'
+import NameDialog from '../components/ui/NameDialog.jsx'
 import ExportDialog from '../components/export/ExportDialog.jsx'
 import { downloadPng } from '../components/export/buildBriefPdf.js'
 import { shareVersion } from '../components/export/shareLink.js'
 import { useProjects } from '../context/ProjectsContext.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
-import EmptyState from '../components/ui/EmptyState.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { api } from '../api/client.js'
 import { content } from '../content.js'
 
 const t = content.app.studio
 const tc = content.app.compare
-
-// Per-project feed scroll offsets, kept for the life of the tab so navigating
-// away and back (wireflow §7 scroll restoration) doesn't dump the user at the bottom.
-const feedScrollMemory = new Map()
 
 export default function StudioPage() {
   const { projectId } = useParams()
@@ -44,18 +43,11 @@ export default function StudioPage() {
   // the moment context updates (e.g. an item-image finishing while the panel
   // is open), so panels must always look the current one up live by id.
   const [lightboxId, setLightboxId] = useState(null)
-  const [analyzeTargetId, setAnalyzeTargetId] = useState(null)
   const [exportTargetId, setExportTargetId] = useState(null)
-  // Design Workspace: which project-nav section is showing (Ringkasan/Informasi
-  // Acara/Checklist & Brief), and which version the Version Explorer has
-  // selected — the latter tracks analyzeTargetId for now (both mean "the
-  // active version"); DesignCanvas/Inspector read it once built.
-  const [navSection, setNavSection] = useState('summary')
   const [deleteVersionTarget, setDeleteVersionTarget] = useState(null)
-  // Object Properties (Inspector, Level 4): which checklist item is selected —
-  // drives the Canvas pin highlight, the Inspector's detail view, and the AI
-  // Copilot composer's scoping ("modify only this object" vs. the whole design).
-  const [selectedObjectId, setSelectedObjectId] = useState(null)
+  // Which off-canvas panel is showing below its docked breakpoint.
+  const [railOpen, setRailOpen] = useState(false)
+  const [inspectorOpen, setInspectorOpen] = useState(false)
   // Cosmetic-only: has the user opened Export at least once this session —
   // feeds the derived stepper's "Export" step. Not persisted.
   const [exportedOnce, setExportedOnce] = useState(false)
@@ -73,10 +65,8 @@ export default function StudioPage() {
   // this is a first-time bookmark or a rename of an existing one.
   const [bookmarkTarget, setBookmarkTarget] = useState(null)
   const autorunFired = useRef(false)
-  const mainRef = useRef(null)
   const entryRefs = useRef(new Map())
   const composerRef = useRef(null)
-  const prevTimelineCount = useRef(null)
   const genParamHandled = useRef(false)
   const prevStatuses = useRef(new Map())
   // Generations already pending when this tab opened (e.g. a refresh mid-generation,
@@ -103,9 +93,19 @@ export default function StudioPage() {
     ...messages.map((m) => ({ kind: 'msg', id: m.id, createdAt: m.createdAt, data: m })),
   ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
   const lightbox = generations.find((g) => g.id === lightboxId) ?? null
-  const analyzeTarget = generations.find((g) => g.id === analyzeTargetId) ?? null
   const exportTarget = generations.find((g) => g.id === exportTargetId) ?? null
   const latestDoneId = generations.find((g) => g.status === 'done')?.id ?? null
+
+  const {
+    navSection,
+    setNavSection,
+    activeVersionId,
+    activeVersion,
+    selectVersion,
+    selectedObjectId,
+    selectedObject,
+    selectObject,
+  } = useWorkspaceSelection({ generations })
 
   const scrollToEntry = (id) => {
     entryRefs.current.get(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -115,17 +115,19 @@ export default function StudioPage() {
 
   // The Inspector always shows the active version's analysis — the Analisis
   // CTA on a design bubble/lightbox/export just refocuses which one that is.
-  const focusAnalysis = (id) => {
-    setAnalyzeTargetId(id)
-    setSelectedObjectId(null)
-  }
-
-  useEffect(() => {
-    if (!analyzeTargetId && latestDoneId) setAnalyzeTargetId(latestDoneId)
-  }, [analyzeTargetId, latestDoneId])
+  const focusAnalysis = (id) => selectVersion(id)
 
   useEffect(() => {
     if (compareOpen) setComparePct(50)
+  }, [compareOpen])
+
+  // Escape closes the compare overlay, matching the lightbox. A modal that
+  // only dismisses on backdrop click traps keyboard users.
+  useEffect(() => {
+    if (!compareOpen) return
+    const onKey = (e) => e.key === 'Escape' && setCompareOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
   }, [compareOpen])
 
   // Mode dropdown (Buat gambar / Rencana): close on outside click / Escape.
@@ -188,28 +190,9 @@ export default function StudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // T5: restore this project's feed scroll offset on mount, save it on the way out.
-  // No saved offset (fresh tab) defaults to the bottom — latest is newest-message-first
-  // chat convention, so that's where a visitor expects to land.
-  useEffect(() => {
-    const el = mainRef.current
-    if (!el) return
-    el.scrollTop = feedScrollMemory.get(projectId) ?? el.scrollHeight
-    return () => feedScrollMemory.set(projectId, el.scrollTop)
-  }, [projectId])
-
-  // T5: a newly inserted entry only pulls the feed to the bottom if the user was
-  // already reading near the bottom — never yank scroll from someone reviewing history.
-  useEffect(() => {
-    const el = mainRef.current
-    if (!el) return
-    const total = generations.length + messages.length
-    if (prevTimelineCount.current !== null && total > prevTimelineCount.current) {
-      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 100
-      if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-    }
-    prevTimelineCount.current = total
-  }, [generations.length, messages.length])
+  // (Feed scroll handling lives with the conversation drawer that owns the
+  // scroll container — see CopilotBar. The old effects here were bound to a ref
+  // that no longer matched any element after the feed moved into the canvas.)
 
   // Q2: aria-live announcements for the generation lifecycle (ux-spec §12).
   useEffect(() => {
@@ -284,23 +267,62 @@ export default function StudioPage() {
     setNote('')
   }
 
-  // AI Copilot context-awareness: with an object selected, "send" scopes the
-  // edit to just that checklist item (existing runItemImage — the same call
-  // ChecklistRow's "Kustomisasi" already makes) instead of regenerating the
-  // whole design. No new business logic, just a different entry point.
-  const handleComposerGenerate = () => {
-    if (selectedObjectId && analyzeTarget) {
-      if (!note.trim()) return
-      runItemImage(project.id, analyzeTarget.id, selectedObjectId, note)
+  // Regenerating a single object costs credits exactly like a full design
+  // does, so it goes through the same confirmation gate — the free-text
+  // composer and the one-click chips both land here.
+  const runObjectEdit = (prompt) => {
+    if (!activeVersion || !selectedObjectId || !prompt.trim()) return
+    const objectId = selectedObjectId
+    const versionId = activeVersion.id
+    setConfirmGenerate(() => () => {
+      runItemImage(project.id, versionId, objectId, prompt)
       setNote('')
-      return
-    }
+    })
+  }
+
+  // Whole-design retouch from a prompt we composed (chips), rather than from
+  // whatever is currently typed. Same gate, same runGeneration call.
+  const runWholeDesignEdit = (prompt) => {
+    if (isPending || !prompt.trim()) return
+    setConfirmGenerate(() => () => {
+      runGeneration(project.id, {
+        prompt: project.prompt,
+        modificationNote: prompt,
+        referenceGenerationImageId: referenceEntry?.imageId ?? activeVersion?.imageId,
+      })
+      setNote('')
+    })
+  }
+
+  // AI Copilot context-awareness: with an object selected, "send" scopes the
+  // edit to just that checklist item instead of regenerating the whole design.
+  const handleComposerGenerate = () => {
+    if (selectedObjectId && activeVersion) return runObjectEdit(note)
     handleGenerate()
   }
 
+  // Zero-typing path: a chip carries its own prompt and executes it.
+  const handleRunChip = (chip) => {
+    if (selectedObjectId && activeVersion) return runObjectEdit(chip.prompt)
+    runWholeDesignEdit(chip.prompt)
+  }
+
   const handleShare = () => {
-    if (!analyzeTarget) return
-    shareVersion(project, analyzeTarget, showToast)
+    if (!activeVersion) return
+    shareVersion(project, activeVersion, showToast)
+  }
+
+  const handleExportActive = () => {
+    if (!activeVersion) return
+    setExportedOnce(true)
+    setExportTargetId(activeVersion.id)
+  }
+
+  // "Original" is the first design made for the project; later ones are
+  // numbered. A user-given favorite name always wins.
+  const versionNameOf = (entry) => {
+    if (!entry) return t.emptyTitle
+    return entry.favoriteName || (versionOf(entry) === 1 ? t.original : `${t.design} ${versionOf(entry)}`)
   }
 
   // "Pakai brief ini": drop the advisor's proposed brief into the composer and
@@ -342,7 +364,9 @@ export default function StudioPage() {
       }))
       return
     }
-    const defaultName = `${t.design} ${versionOf(entry)}`
+    // Reuse the rail's naming rule so starring the first design doesn't
+    // silently relabel it from "Original" to "Desain 1".
+    const defaultName = versionNameOf(entry)
     updateProject(project.id, (p) => ({
       ...p,
       generations: p.generations.map((g) =>
@@ -402,7 +426,7 @@ export default function StudioPage() {
       ...p,
       generations: p.generations.filter((g) => g.id !== deleteVersionTarget.id),
     }))
-    if (analyzeTargetId === deleteVersionTarget.id) setAnalyzeTargetId(null)
+    if (activeVersionId === deleteVersionTarget.id) selectVersion(null)
     if (referenceEntry?.id === deleteVersionTarget.id) setReferenceEntry(null)
     showToast(t.versionDeleted)
     setDeleteVersionTarget(null)
@@ -417,22 +441,29 @@ export default function StudioPage() {
 
 
   return (
-    <AppShell projectName={project.name}>
-      <div role="status" aria-live="polite" className="sr-only">
-        {announcement}
-      </div>
-      <div className="flex h-[calc(100vh-56px)]">
+    <WorkspaceShell
+      railOpen={railOpen}
+      onOpenRail={() => setRailOpen(true)}
+      onCloseRail={() => setRailOpen(false)}
+      inspectorOpen={inspectorOpen}
+      onCloseInspector={() => setInspectorOpen(false)}
+      rail={
         <ProjectRail
           project={project}
           onEditSetup={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
           navSection={navSection}
-          onNavSectionChange={setNavSection}
+          onNavSectionChange={(section) => {
+            setNavSection(section)
+            setRailOpen(false)
+          }}
+          onCompare={() => setCompareOpen(true)}
+          compareCount={compareIds.length}
           versionExplorerProps={{
             generations,
-            selectedVersionId: analyzeTargetId,
+            selectedVersionId: activeVersionId,
             onSelect: (id) => {
-              setAnalyzeTargetId(id)
-              setSelectedObjectId(null)
+              selectVersion(id)
+              setRailOpen(false)
             },
             versionOf,
             onRename: (entry) => setBookmarkTarget(entry),
@@ -444,103 +475,26 @@ export default function StudioPage() {
             onNewVersion: () => composerRef.current?.focus(),
           }}
         />
-        {navSection === 'checklist' ? (
-          <div className="min-h-0 flex-1 overflow-y-auto p-6">
-            <div className="mx-auto max-w-[720px]">
-              <h1 className="mb-4 font-display text-lg font-semibold text-ink">{t.navChecklist}</h1>
-              <AnalyzePanel
-                projectId={project.id}
-                generation={analyzeTarget}
-                versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
-                onExport={(gen) => {
-                  setExportedOnce(true)
-                  setExportTargetId(gen.id)
-                }}
-              />
-            </div>
-          </div>
-        ) : (
-        <DesignCanvas
+      }
+      header={(ctx) => (
+        <WorkspaceHeader
+          {...ctx}
           project={project}
-          selectedVersion={analyzeTarget}
-          versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
-          generations={generations}
-          onSelectVersion={(id) => {
-            setAnalyzeTargetId(id)
-            setSelectedObjectId(null)
-          }}
-          versionOf={versionOf}
-          selectedObjectId={selectedObjectId}
-          onSelectObject={setSelectedObjectId}
-          onFullscreen={() => analyzeTarget && setLightboxId(analyzeTarget.id)}
-          onShare={handleShare}
-          onExportClick={() => {
-            if (!analyzeTarget) return
-            setExportedOnce(true)
-            setExportTargetId(analyzeTarget.id)
-          }}
-          onRegenerate={() => analyzeTarget && handleRetry(analyzeTarget)}
+          activeVersion={activeVersion}
+          versionName={versionNameOf(activeVersion)}
           onToggleFavorite={handleToggleFavorite}
-          exported={exportedOnce}
-          analyzing={Boolean(analyzeTarget) && !analyzeTarget.analysis}
-          composerProps={{
-            mode,
-            onModeChange: setMode,
-            modeMenuOpen,
-            onModeMenuOpenChange: setModeMenuOpen,
-            modeMenuRef,
-            composerImage,
-            onComposerImageChange: setComposerImage,
-            referenceEntry,
-            onRemoveReference: () => setReferenceEntry(null),
-            referenceVersionNumber: referenceEntry ? versionOf(referenceEntry) : 0,
-            note,
-            onNoteChange: setNote,
-            composerRef,
-            isPending,
-            isPlanPending,
-            onGenerate: handleComposerGenerate,
-            onPlanSend: handlePlanSend,
-            placeholder:
-              selectedObjectId && mode === 'generate'
-                ? t.copilotPlaceholderObject(
-                    analyzeTarget?.analysis?.items.find((i) => i.id === selectedObjectId)?.name ?? '',
-                  )
-                : mode === 'generate'
-                  ? t.copilotPlaceholderWhole
-                  : undefined,
-          }}
-          conversationProps={{
-            timeline,
-            generations,
-            allErrored,
-            entryRefs,
-            onOpenLightbox: (g) => setLightboxId(g.id),
-            onAnalyze: (g) => focusAnalysis(g.id),
-            onExport: (g) => setExportTargetId(g.id),
-            onRetry: handleRetry,
-            onCancel: handleCancel,
-            onUseAsReference: handleUseAsReference,
-            onReply: handleReply,
-            onUseBrief: handleUseBrief,
-            referenceEntry,
-            latestDoneId,
-            analyzeTargetId,
-            isAnalysisFocused: true,
-            flashId,
-            onToggleFavorite: handleToggleFavorite,
-            onToggleCompare: handleToggleCompare,
-            compareIds,
-          }}
+          onShare={handleShare}
+          onExport={handleExportActive}
+          onOpenInspector={() => setInspectorOpen(true)}
         />
-        )}
-
+      )}
+      inspector={
         <Inspector
           project={project}
-          selectedVersion={analyzeTarget}
-          versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
-          selectedObjectId={selectedObjectId}
-          onSelectObject={setSelectedObjectId}
+          activeVersion={activeVersion}
+          versionNumber={activeVersion ? versionOf(activeVersion) : 0}
+          selectedObject={selectedObject}
+          onSelectObject={selectObject}
           onEditSetup={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
           onRenameVersion={(entry) => setBookmarkTarget(entry)}
           onExportVersion={(entry) => {
@@ -548,7 +502,97 @@ export default function StudioPage() {
             setExportTargetId(entry.id)
           }}
         />
+      }
+    >
+      <div role="status" aria-live="polite" className="sr-only">
+        {announcement}
       </div>
+
+      {navSection === 'checklist' ? (
+        <ChecklistBriefPanel
+          projectId={project.id}
+          generation={activeVersion}
+          versionNumber={activeVersion ? versionOf(activeVersion) : 0}
+          selectedObjectId={selectedObjectId}
+          onSelectObject={selectObject}
+          onExport={(gen) => {
+            setExportedOnce(true)
+            setExportTargetId(gen.id)
+          }}
+        />
+      ) : navSection === 'event' ? (
+        <EventInfoPanel
+          project={project}
+          onEditSetup={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
+        />
+      ) : (
+        <DesignCanvas
+          project={project}
+          activeVersion={activeVersion}
+          generations={generations}
+          versionOf={versionOf}
+          activeVersionId={activeVersionId}
+          onSelectVersion={selectVersion}
+          selectedObjectId={selectedObjectId}
+          onSelectObject={selectObject}
+          onFullscreen={() => activeVersion && setLightboxId(activeVersion.id)}
+          onNewVersion={() => composerRef.current?.focus()}
+          exported={exportedOnce}
+          analyzing={Boolean(activeVersion) && !activeVersion.analysis}
+          copilotProps={{
+            selectedObjectName: selectedObject?.name ?? null,
+            onRunChip: handleRunChip,
+            timelineCount: timeline.length,
+            composerProps: {
+              mode,
+              onModeChange: setMode,
+              modeMenuOpen,
+              onModeMenuOpenChange: setModeMenuOpen,
+              modeMenuRef,
+              composerImage,
+              onComposerImageChange: setComposerImage,
+              referenceEntry,
+              onRemoveReference: () => setReferenceEntry(null),
+              referenceVersionNumber: referenceEntry ? versionOf(referenceEntry) : 0,
+              note,
+              onNoteChange: setNote,
+              composerRef,
+              isPending,
+              isPlanPending,
+              onGenerate: handleComposerGenerate,
+              onPlanSend: handlePlanSend,
+              placeholder:
+                selectedObject && mode === 'generate'
+                  ? t.copilotPlaceholderObject(selectedObject.name)
+                  : mode === 'generate'
+                    ? t.copilotPlaceholderWhole
+                    : undefined,
+            },
+            conversationProps: {
+              timeline,
+              generations,
+              allErrored,
+              entryRefs,
+              onOpenLightbox: (g) => setLightboxId(g.id),
+              onAnalyze: (g) => focusAnalysis(g.id),
+              onExport: (g) => setExportTargetId(g.id),
+              onRetry: handleRetry,
+              onCancel: handleCancel,
+              onUseAsReference: handleUseAsReference,
+              onReply: handleReply,
+              onUseBrief: handleUseBrief,
+              referenceEntry,
+              latestDoneId,
+              analyzeTargetId: activeVersionId,
+              isAnalysisFocused: true,
+              flashId,
+              onToggleFavorite: handleToggleFavorite,
+              onToggleCompare: handleToggleCompare,
+              compareIds,
+            },
+          }}
+        />
+      )}
 
       {lightbox && (
         <div
@@ -720,13 +764,13 @@ export default function StudioPage() {
         confirmLabel={t.deleteVersionCta}
       />
 
-      <BookmarkNameDialog
+      <NameDialog
         open={Boolean(bookmarkTarget)}
         title={bookmarkTarget?.favorite ? t.bookmarkRenameTitle : t.renameVersionTitle}
         initialName={bookmarkTarget?.favoriteName ?? ''}
         onClose={() => setBookmarkTarget(null)}
         onSave={saveBookmarkName}
       />
-    </AppShell>
+    </WorkspaceShell>
   )
 }

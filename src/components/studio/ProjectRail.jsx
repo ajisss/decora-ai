@@ -20,9 +20,11 @@ export default function ProjectRail({
   navSection,
   onNavSectionChange,
   versionExplorerProps,
+  onCompare,
+  compareCount = 0,
 }) {
   return (
-    <div className="flex h-full w-64 shrink-0 flex-col border-r border-paper-line bg-paper-soft">
+    <>
       <div className="flex items-start justify-between gap-2 p-3">
         <div className="min-w-0">
           <h1 className="truncate font-display text-base font-semibold text-ink">{project.name}</h1>
@@ -60,6 +62,20 @@ export default function ProjectRail({
       <div className="border-t border-paper-line" />
 
       <VersionExplorer {...versionExplorerProps} />
-    </div>
+
+      <div className="shrink-0 border-t border-paper-line p-2">
+        <button
+          type="button"
+          onClick={onCompare}
+          disabled={compareCount < 2}
+          title={compareCount < 2 ? content.app.compare.barHint : undefined}
+          className="btn-ghost w-full !py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <StepIcon name="compare" className="h-3.5 w-3.5" />
+          {t.compareVersions}
+          {compareCount > 0 && <span className="text-clay-deep">({compareCount}/2)</span>}
+        </button>
+      </div>
+    </>
   )
 }

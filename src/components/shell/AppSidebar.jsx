@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { content } from '../../content.js'
 import { useAuth } from '../../context/AuthContext.jsx'
+import useMediaQuery from '../../lib/useMediaQuery.js'
 import { StepIcon } from '../icons.jsx'
 
 const mqMobile = '(max-width: 1023px)'
@@ -37,21 +38,26 @@ const NAV_ITEMS = [
 // menciutkan sidebar jadi ikon-saja. Selalu `fixed` + spacer terpisah
 // (bukan `lg:static`) supaya hover-to-expand bisa overlay konten tanpa
 // reflow layout di baliknya.
-export default function AppSidebar({ open = false, onClose = () => {}, collapsed = false, onToggleCollapse = () => {} }) {
+// `forceCollapsed` is the Design Workspace mode: icon-only, self-managing its
+// own expand toggle, so the workspace shell doesn't have to thread collapse
+// state it has no other use for. `collapsed`/`onToggleCollapse` remain for
+// AppShell, which drives the state from the route.
+export default function AppSidebar({
+  open = false,
+  onClose = () => {},
+  collapsed = false,
+  onToggleCollapse,
+  forceCollapsed = false,
+}) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [mobile, setMobile] = useState(() => window.matchMedia(mqMobile).matches)
+  const mobile = useMediaQuery(mqMobile)
   const [hoverExpanded, setHoverExpanded] = useState(false)
+  const [selfCollapsed, setSelfCollapsed] = useState(true)
 
-  useEffect(() => {
-    const m = window.matchMedia(mqMobile)
-    const on = () => setMobile(m.matches)
-    on()
-    m.addEventListener?.('change', on)
-    return () => m.removeEventListener?.('change', on)
-  }, [])
-
-  const narrow = !mobile && collapsed && !hoverExpanded
+  const isCollapsed = forceCollapsed ? selfCollapsed : collapsed
+  const toggleCollapse = forceCollapsed ? () => setSelfCollapsed((c) => !c) : onToggleCollapse ?? (() => {})
+  const narrow = !mobile && isCollapsed && !hoverExpanded
   const width = mobile ? WIDE : narrow ? NARROW : WIDE
 
   return (
@@ -61,7 +67,7 @@ export default function AppSidebar({ open = false, onClose = () => {}, collapsed
       <div className="hidden shrink-0 transition-[width] duration-200 lg:block" style={{ width }} aria-hidden="true" />
       <aside
         inert={mobile && !open ? '' : undefined}
-        onMouseEnter={() => !mobile && collapsed && setHoverExpanded(true)}
+        onMouseEnter={() => !mobile && isCollapsed && setHoverExpanded(true)}
         onMouseLeave={() => setHoverExpanded(false)}
         style={{ width: mobile ? WIDE : width }}
         className={`fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col border-r border-paper-line bg-paper-soft transition-[transform,width] duration-200 lg:translate-x-0 ${
@@ -117,13 +123,13 @@ export default function AppSidebar({ open = false, onClose = () => {}, collapsed
         <div className="px-3 pb-2">
           <button
             type="button"
-            onClick={onToggleCollapse}
-            title={collapsed ? 'Perluas menu' : 'Minimalkan menu'}
+            onClick={toggleCollapse}
+            title={isCollapsed ? 'Perluas menu' : 'Minimalkan menu'}
             className={`hidden w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-ink-muted transition-colors hover:bg-white hover:text-ink lg:flex ${
               narrow ? 'justify-center px-0' : ''
             }`}
           >
-            <StepIcon name="chevronRight" className={`h-3.5 w-3.5 shrink-0 transition-transform ${collapsed ? '' : 'rotate-180'}`} />
+            <StepIcon name="chevronRight" className={`h-3.5 w-3.5 shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} />
             {!narrow && 'Minimalkan menu'}
           </button>
         </div>

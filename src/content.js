@@ -388,7 +388,7 @@ export const content = {
       navEvent: 'Informasi Acara',
       navChecklist: 'Checklist & Brief',
       copilotTitle: 'AI Copilot',
-      copilotPlaceholderWhole: 'Ubah seluruh desain, atau pilih item di kanvas untuk mengubah bagian tertentu…',
+      copilotPlaceholderWhole: 'Ubah seluruh desain, atau pilih item di kanvas…',
       copilotPlaceholderObject: (name) => `Modifikasi "${name}" saja…`,
       conversationHistory: 'Riwayat percakapan',
       shareLink: 'Bagikan',
@@ -424,10 +424,31 @@ export const content = {
       confidenceLabel: 'Confidence',
       editObject: 'Edit',
       removeObject: 'Hapus',
+      panelRail: 'Proyek & versi',
+      panelInspector: 'Inspector',
+      renameObjectTitle: 'Ubah nama item',
+      // AI Copilot: one-click actions that compose the prompt for the user.
+      // `whole` retouches the entire design; `object` is scoped to one item.
+      copilotChips: {
+        whole: [
+          { id: 'luxe', label: 'Buat lebih mewah', prompt: 'Make the overall decoration look more luxurious and premium, with richer materials and more elaborate floral work.' },
+          { id: 'roses', label: 'Gunakan bunga mawar merah', prompt: 'Replace the floral arrangements with deep red roses throughout, keeping the rest of the design intact.' },
+          { id: 'rustic', label: 'Ubah ke tema rustic', prompt: 'Rework the decoration into a warm rustic theme using natural wood, greenery, and softer earthy tones.' },
+          { id: 'budget', label: 'Kurangi biaya dekorasi', prompt: 'Simplify the decoration to reduce cost, keeping the focal point strong but using fewer and less expensive elements.' },
+        ],
+        object: (name) => [
+          { id: 'bigger', label: 'Perbesar', prompt: `Make the ${name} noticeably larger and more prominent.` },
+          { id: 'luxe', label: 'Lebih mewah', prompt: `Make the ${name} look more luxurious, with richer materials and finer detailing.` },
+          { id: 'simpler', label: 'Lebih sederhana', prompt: `Simplify the ${name} into a cleaner, more minimal version.` },
+          { id: 'color', label: 'Ganti warna', prompt: `Change the color palette of the ${name} while keeping its shape and structure.` },
+        ],
+      },
     },
     analyze: {
       title: 'Checklist dekorasi',
       design: 'Desain',
+      searchPlaceholder: 'Cari item…',
+      noMatch: 'Tidak ada item yang cocok.',
       // Peta label tampilan ID — nilai data/enum tetap EN (tersimpan di project & schema server).
       categoryLabels: {
         Stage: 'Panggung',
