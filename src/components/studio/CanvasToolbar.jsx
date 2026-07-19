@@ -31,6 +31,7 @@ export default function CanvasToolbar({
         type="button"
         onClick={onFit}
         title={t.zoomFit}
+        aria-label={t.zoomFit}
         className="min-w-[3.25rem] rounded-full px-1 text-xs font-medium text-ink-soft hover:bg-paper-soft"
       >
         {percent}%

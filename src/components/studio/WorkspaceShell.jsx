@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { StepIcon } from '../icons.jsx'
 import AppSidebar from '../shell/AppSidebar.jsx'
 import useMediaQuery from '../../lib/useMediaQuery.js'
+import useFocusTrap from '../../lib/useFocusTrap.js'
 import { content } from '../../content.js'
 
 const t = content.app.studio
@@ -46,7 +47,7 @@ export default function WorkspaceShell({
       <AppSidebar forceCollapsed open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {railDocked ? (
-        <div className="flex h-full w-[280px] shrink-0 flex-col border-r border-paper-line bg-paper-soft">{rail}</div>
+        <aside aria-label={t.panelRail} className="flex h-full w-[280px] shrink-0 flex-col border-r border-paper-line bg-paper-soft">{rail}</aside>
       ) : (
         <SlideOver side="left" open={railOpen} onClose={onCloseRail} label={t.panelRail} width="w-[280px]">
           {rail}
@@ -65,9 +66,9 @@ export default function WorkspaceShell({
         <div className="flex min-h-0 flex-1">
           <main className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</main>
           {inspectorDocked ? (
-            <div className="flex h-full w-[360px] shrink-0 flex-col border-l border-paper-line bg-paper-soft">
+            <aside aria-label={t.panelInspector} className="flex h-full w-[360px] shrink-0 flex-col border-l border-paper-line bg-paper-soft">
               {inspector}
-            </div>
+            </aside>
           ) : (
             <SlideOver
               side="right"
@@ -86,17 +87,29 @@ export default function WorkspaceShell({
 }
 
 // Off-canvas panel for the rail/inspector below their docked breakpoints.
-// `inert` while closed keeps keyboard focus out of a hidden panel — the same
-// approach AppSidebar already uses for its mobile drawer.
+//
+// It's a modal surface, so it gets the full contract via useFocusTrap: focus
+// moves in on open, Tab stays inside, Escape closes, and focus returns to the
+// trigger on close. That last part matters more than it looks — selecting a
+// version or a nav section closes the drawer from *inside*, and the button
+// that was just clicked then sits in an `inert` subtree, so without the
+// restore the browser drops focus to <body> on every single selection.
 function SlideOver({ side, open, onClose, label, width, children }) {
   const isLeft = side === 'left'
+  const panelRef = useRef(null)
+  useFocusTrap({ open, onClose, containerRef: panelRef })
+
   return (
     <>
       {open && <div className="fixed inset-0 z-40 bg-ink/30" onClick={onClose} aria-hidden="true" />}
       <aside
+        ref={panelRef}
         inert={open ? undefined : ''}
+        role="dialog"
+        aria-modal={open ? 'true' : undefined}
         aria-label={label}
-        className={`fixed inset-y-0 z-50 flex ${width} max-w-[85vw] flex-col bg-paper-soft transition-transform duration-200 ${
+        tabIndex={-1}
+        className={`fixed inset-y-0 z-50 flex ${width} max-w-[85vw] flex-col bg-paper-soft outline-none transition-transform duration-200 ${
           isLeft ? 'left-0 border-r' : 'right-0 border-l'
         } border-paper-line ${open ? 'translate-x-0' : isLeft ? '-translate-x-full' : 'translate-x-full'}`}
       >
@@ -104,7 +117,7 @@ function SlideOver({ side, open, onClose, label, width, children }) {
           <button
             type="button"
             onClick={onClose}
-            aria-label={t.lightboxClose}
+            aria-label={`${t.lightboxClose} ${label}`}
             className="rounded-md p-1.5 text-ink-muted hover:bg-paper hover:text-ink"
           >
             <StepIcon name="close" className="h-4 w-4" />

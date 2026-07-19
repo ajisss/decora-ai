@@ -37,7 +37,7 @@ router.post('/', async (req, res) => {
     }
     if (lastErr) throw lastErr
 
-    const previousManual = generation.analysis?.items.filter((i) => i.isManual) ?? []
+    const previousManual = generation.analysis?.items?.filter((i) => i.isManual) ?? []
     const detected = (result.items ?? []).map((item) => ({
       id: `${generationId}-${item.category}-${Math.random().toString(36).slice(2, 8)}`,
       ...item,

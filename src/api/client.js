@@ -67,6 +67,12 @@ export const api = {
   itemInsight: ({ projectId, generationId, itemId }) =>
     request('/item-insight', { method: 'POST', body: JSON.stringify({ projectId, generationId, itemId }) }),
 
+  // Composer reference image: POSTs the data URL and gets back a stored id.
+  // StudioPage has always called this; it just never existed here, so every
+  // upload threw TypeError into a catch that silently generated without the
+  // reference — the "+ Referensi" attachment did nothing.
+  upload: (dataUrl) => request('/uploads', { method: 'POST', body: JSON.stringify({ dataUrl }) }),
+
   auth: {
     register: ({ name, email, password }) =>
       request('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),

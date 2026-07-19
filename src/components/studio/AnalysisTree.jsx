@@ -72,7 +72,8 @@ export default function AnalysisTree({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.searchPlaceholder}
-            className="h-9 w-full rounded-lg border border-paper-line bg-paper pl-8 pr-2 text-sm focus:border-clay focus:outline-none"
+            aria-label={t.searchPlaceholder}
+            className="h-9 w-full rounded-lg border border-paper-line bg-paper pl-8 pr-2 text-sm focus:border-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus:outline-none"
           />
         </div>
       )}
@@ -88,6 +89,7 @@ export default function AnalysisTree({
                 type="button"
                 onClick={() => toggle(cat)}
                 aria-expanded={!isCollapsed}
+                aria-controls={`analysis-group-${cat.replace(/\s+/g, '-')}`}
                 className={`flex w-full items-center gap-1.5 rounded-md text-left font-medium text-ink-soft hover:bg-paper-soft ${
                   density === 'full' ? 'px-3 py-2 text-sm' : 'px-1.5 py-1.5 text-xs'
                 }`}
@@ -107,7 +109,7 @@ export default function AnalysisTree({
                 (renderRow ? (
                   <div className="space-y-1 border-t border-paper-line p-2">{catItems.map(renderRow)}</div>
                 ) : (
-                  <div className="ml-[18px] space-y-0.5">
+                  <div id={`analysis-group-${cat.replace(/\s+/g, '-')}`} className="ml-[18px] space-y-0.5">
                     {catItems.map((item) => {
                       const active = item.id === selectedObjectId
                       return (
@@ -163,7 +165,8 @@ AnalysisTree.Search = function AnalysisTreeSearch({ value, onChange, compact = t
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t.searchPlaceholder}
-        className={`w-full rounded-lg border border-paper-line bg-paper pl-8 pr-2 focus:border-clay focus:outline-none ${
+        aria-label={t.searchPlaceholder}
+        className={`w-full rounded-lg border border-paper-line bg-paper pl-8 pr-2 focus:border-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus:outline-none ${
           compact ? 'h-8 text-xs' : 'h-9 text-sm'
         }`}
       />

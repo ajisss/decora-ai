@@ -52,4 +52,8 @@ export async function migrate() {
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(id) ON DELETE CASCADE`
   await sql`CREATE INDEX IF NOT EXISTS projects_user_id_idx ON projects (user_id)`
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS messages JSONB NOT NULL DEFAULT '[]'::jsonb`
+  // Favorites were only ever persisted by the local store — on a Neon deploy
+  // every save round-trip silently erased them.
+  await sql`ALTER TABLE generations ADD COLUMN IF NOT EXISTS favorite BOOLEAN NOT NULL DEFAULT false`
+  await sql`ALTER TABLE generations ADD COLUMN IF NOT EXISTS favorite_name TEXT`
 }

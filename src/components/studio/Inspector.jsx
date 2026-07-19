@@ -32,7 +32,7 @@ export default function Inspector({
 
   return (
     <>
-      <div className="flex shrink-0 items-center gap-4 border-b border-paper-line px-4">
+      <div role="tablist" aria-label={t.panelInspector} className="flex shrink-0 items-center gap-4 border-b border-paper-line px-4">
         {[
           { value: 'inspector', label: t.inspectorTab },
           { value: 'notes', label: t.notesTab },
@@ -40,6 +40,10 @@ export default function Inspector({
           <button
             key={tb.value}
             type="button"
+            role="tab"
+            id={`inspector-tab-${tb.value}`}
+            aria-selected={tab === tb.value}
+            aria-controls={`inspector-panel-${tb.value}`}
             onClick={() => setTab(tb.value)}
             className={`-mb-px border-b-2 py-2.5 text-sm font-medium transition-colors ${
               tab === tb.value
@@ -52,7 +56,18 @@ export default function Inspector({
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      {/* The Inspector is now the primary analysis surface, so it owes its own
+          status announcements — analysing/complete/failed were silent here. */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {loading ? ta.analyzing : analysis ? ta.itemCount(itemCount) : ''}
+      </div>
+
+      <div
+        role="tabpanel"
+        id={`inspector-panel-${tab}`}
+        aria-labelledby={`inspector-tab-${tab}`}
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
         {tab === 'notes' ? (
           <div className="space-y-3 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted">{t.notesTab}</p>
@@ -135,8 +150,9 @@ export default function Inspector({
                   <p className="text-xs text-ink-soft">{ta.ctaSuggestBody}</p>
                   <button
                     type="button"
-                    onClick={analyze}
-                    disabled={loading || activeVersion.status !== 'done'}
+                    onClick={() => !loading && analyze()}
+                    aria-disabled={loading || activeVersion.status !== 'done'}
+                    disabled={activeVersion.status !== 'done'}
                     className="btn-primary mt-2 w-full !py-1.5 text-xs disabled:opacity-60"
                   >
                     {loading ? ta.analyzing : ta.cta}

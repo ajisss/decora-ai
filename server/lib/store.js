@@ -26,6 +26,8 @@ function toGeneration(row) {
     imageId: row.image_id,
     error: row.error,
     analysis: row.analysis,
+    favorite: row.favorite ?? false,
+    favoriteName: row.favorite_name ?? null,
   }
 }
 
@@ -76,6 +78,15 @@ async function cloudSaveProject(project, userId) {
   const setup = JSON.stringify(project.setup ?? {})
   const messages = JSON.stringify(project.messages ?? [])
 
+  // The ON CONFLICT guard below no-ops for a project owned by someone else,
+  // but the DELETE/INSERT of generations that follows it is unconditional —
+  // so without this check a foreign PUT still wipes the owner's whole history
+  // and injects its own rows. Fail closed before touching anything.
+  const owner = await sql`SELECT user_id FROM projects WHERE id = ${project.id}`
+  if (owner.length > 0 && owner[0].user_id !== userId) {
+    throw Object.assign(new Error('Project belongs to another user'), { code: 'forbidden' })
+  }
+
   const queries = [
     sql`
       INSERT INTO projects (id, user_id, name, prompt, setup, messages, created_at, updated_at)
@@ -92,8 +103,8 @@ async function cloudSaveProject(project, userId) {
     ...generations.map((g) => {
       const analysis = g.analysis ? JSON.stringify(g.analysis) : null
       return sql`
-        INSERT INTO generations (id, project_id, created_at, prompt, modification_note, status, image_id, error, analysis)
-        VALUES (${g.id}, ${project.id}, ${g.createdAt}, ${g.prompt ?? null}, ${g.modificationNote ?? null}, ${g.status}, ${g.imageId ?? null}, ${g.error ?? null}, ${analysis}::jsonb)
+        INSERT INTO generations (id, project_id, created_at, prompt, modification_note, status, image_id, error, analysis, favorite, favorite_name)
+        VALUES (${g.id}, ${project.id}, ${g.createdAt}, ${g.prompt ?? null}, ${g.modificationNote ?? null}, ${g.status}, ${g.imageId ?? null}, ${g.error ?? null}, ${analysis}::jsonb, ${g.favorite ?? false}, ${g.favoriteName ?? null})
       `
     }),
   ]

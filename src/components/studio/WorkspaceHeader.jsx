@@ -146,7 +146,7 @@ function ExportMenu({ activeVersion, onExport, onQuickPng }) {
         disabled={!activeVersion}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={t.export}
+        aria-label={t.exportOptions}
         className="btn-primary !rounded-l-none !border-l !border-white/25 !px-1.5 !py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <StepIcon name="chevronDown" className="h-3.5 w-3.5" />

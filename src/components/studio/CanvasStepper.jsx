@@ -27,11 +27,11 @@ export default function CanvasStepper({ project, activeVersion, analyzing, expor
       {/* min-w-0 + truncate on every label, and a shrinking connector, so all
           5 steps fit without an unindicated horizontal clip at normal canvas
           widths — this only reaches for overflow-x-auto as a last resort. */}
-      <ol className="flex items-center justify-between gap-0.5 overflow-x-auto rounded-xl2 border border-paper-line bg-paper px-3 py-2">
+      <ol aria-label={t.progressLabel} className="flex items-center justify-between gap-0.5 overflow-x-auto rounded-xl2 border border-paper-line bg-paper px-3 py-2">
         {steps.map((s, i) => {
           const state = s.done ? 'done' : s.active ? 'active' : 'waiting'
           return (
-            <li key={s.label} className="flex shrink-0 items-center">
+            <li key={s.label} aria-current={state === 'active' ? 'step' : undefined} className="flex shrink-0 items-center">
               {i > 0 && (
                 <span className="mx-1.5 h-px w-3 shrink-0 bg-paper-line sm:mx-2 sm:w-6" aria-hidden="true" />
               )}
@@ -63,7 +63,7 @@ export default function CanvasStepper({ project, activeVersion, analyzing, expor
                   {i + 1}. {s.label}
                 </span>
                 <span
-                  className={`hidden whitespace-nowrap text-[10px] sm:block ${
+                  className={`whitespace-nowrap text-[10px] max-sm:sr-only ${
                     state === 'active' ? 'text-clay' : state === 'done' ? 'text-success' : 'text-ink-muted'
                   }`}
                 >

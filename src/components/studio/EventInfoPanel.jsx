@@ -22,7 +22,7 @@ export default function EventInfoPanel({ project, onEditSetup }) {
     <div className="min-h-0 flex-1 overflow-y-auto p-6">
       <div className="mx-auto max-w-[760px] space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="font-display text-lg font-semibold text-ink">{t.navEvent}</h1>
+          <h2 className="font-display text-lg font-semibold text-ink">{t.navEvent}</h2>
           <button type="button" onClick={onEditSetup} className="btn-ghost !px-3 !py-1.5 text-xs">
             <StepIcon name="pencil" className="h-3.5 w-3.5" />
             {t.editSetup}

@@ -2,6 +2,7 @@
 // Mirrors the cloud store's shapes exactly: project.setup / messages come back
 // as parsed objects, dates as ISO strings — so callers can't tell the
 // difference. Writes are atomic (temp file + rename). Gitignored (server/data).
+import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,6 +22,19 @@ async function ensureDirs() {
 }
 ensureDirs()
 
+// Ids reach the filesystem through path.join, and Express 5 hands `%2F` back
+// decoded — so `../../users/<id>` arrives as a single param and would escape
+// the data directory. Everything we mint is a nanoid/uuid, so anything outside
+// that alphabet is rejected outright rather than sanitized.
+const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/
+export function isSafeId(id) {
+  return typeof id === 'string' && SAFE_ID.test(id)
+}
+function assertSafeId(id) {
+  if (!isSafeId(id)) throw Object.assign(new Error('Invalid id'), { code: 'bad_request' })
+  return id
+}
+
 async function readJson(file) {
   try {
     return JSON.parse(await fs.readFile(file, 'utf8'))
@@ -31,7 +45,9 @@ async function readJson(file) {
 
 async function writeJson(file, data) {
   await fs.mkdir(path.dirname(file), { recursive: true })
-  const tmp = `${file}.tmp`
+  // Unique per write: a fixed `${file}.tmp` means two concurrent writers for
+  // the same project interleave bytes into one temp file and both rename it.
+  const tmp = `${file}.${crypto.randomUUID()}.tmp`
   await fs.writeFile(tmp, JSON.stringify(data, null, 2))
   await fs.rename(tmp, file)
 }
@@ -100,6 +116,7 @@ export async function listProjects(userId) {
 }
 
 export async function getProject(id, userId) {
+  if (!isSafeId(id)) return null
   const row = await readJson(path.join(PROJECTS_DIR, `${id}.json`))
   // __public__ = token-gated share read (routes/share.js already verified the
   // signed token); skip the owner check so the shared generation is readable.
@@ -108,8 +125,14 @@ export async function getProject(id, userId) {
 }
 
 export async function saveProject(project, userId) {
+  assertSafeId(project.id)
   const file = path.join(PROJECTS_DIR, `${project.id}.json`)
   const existing = await readJson(file)
+  // A save must never change who owns a project. Without this, PUTting a
+  // known id simply rewrites the row with the caller as owner — a takeover.
+  if (existing && existing.userId !== userId) {
+    throw Object.assign(new Error('Project belongs to another user'), { code: 'forbidden' })
+  }
   const row = {
     id: project.id,
     userId,
@@ -137,7 +160,9 @@ export async function saveProject(project, userId) {
 }
 
 export async function deleteProject(id, userId) {
-  const row = await readJson(path.join(PROJECTS_DIR, `${id}.json`))
+  if (!isSafeId(id)) return
+  const file = path.join(PROJECTS_DIR, `${id}.json`)
+  const row = await readJson(file)
   if (!row || row.userId !== userId) return
   await fs.rm(file, { force: true })
   async function rmImage(g) {

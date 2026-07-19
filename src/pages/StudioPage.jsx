@@ -15,6 +15,7 @@ import NameDialog from '../components/ui/NameDialog.jsx'
 import ExportDialog from '../components/export/ExportDialog.jsx'
 import { downloadPng } from '../components/export/buildBriefPdf.js'
 import { shareVersion } from '../components/export/shareLink.js'
+import useFocusTrap from '../lib/useFocusTrap.js'
 import { useProjects } from '../context/ProjectsContext.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
@@ -69,6 +70,8 @@ export default function StudioPage() {
   const composerRef = useRef(null)
   const genParamHandled = useRef(false)
   const prevStatuses = useRef(new Map())
+  const lightboxRef = useRef(null)
+  const compareRef = useRef(null)
   // Generations already pending when this tab opened (e.g. a refresh mid-generation,
   // wireflow §5.3) — these outlived their originating fetch and need recovery polling,
   // as opposed to ones this tab itself just started via runGeneration.
@@ -106,6 +109,11 @@ export default function StudioPage() {
     selectedObject,
     selectObject,
   } = useWorkspaceSelection({ generations })
+
+  // Both overlays set aria-modal, which tells AT the page behind is gone —
+  // so Tab has to actually stay inside them, and focus has to come back.
+  useFocusTrap({ open: Boolean(lightbox), onClose: () => setLightboxId(null), containerRef: lightboxRef })
+  useFocusTrap({ open: compareOpen, onClose: () => setCompareOpen(false), containerRef: compareRef })
 
   const scrollToEntry = (id) => {
     entryRefs.current.get(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -606,12 +614,16 @@ export default function StudioPage() {
 
       {lightbox && (
         <div
+          ref={lightboxRef}
           role="dialog"
           aria-modal="true"
+          aria-label={`${t.design} ${versionOf(lightbox)}`}
+          tabIndex={-1}
           onClick={() => setLightboxId(null)}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-ink/90 p-6"
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-ink/90 p-6 outline-none"
         >
           <button
+            type="button"
             onClick={() => setLightboxId(null)}
             aria-label={t.lightboxClose}
             className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
@@ -620,7 +632,7 @@ export default function StudioPage() {
           </button>
           <img
             src={lightbox.imageId}
-            alt=""
+            alt={`${t.design} ${versionOf(lightbox)}`}
             className="max-h-[70vh] max-w-full rounded-lg object-contain"
             onClick={(e) => e.stopPropagation()}
           />
@@ -658,10 +670,13 @@ export default function StudioPage() {
 
       {compareOpen && compareEntries.length === 2 && (
         <div
+          ref={compareRef}
           role="dialog"
           aria-modal="true"
+          aria-label={tc.title}
+          tabIndex={-1}
           onClick={() => setCompareOpen(false)}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-ink/90 p-6"
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-ink/90 p-6 outline-none"
         >
           <div className="w-full max-w-[720px]" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-display text-lg text-white">{tc.title}</h2>

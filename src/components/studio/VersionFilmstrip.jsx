@@ -28,6 +28,7 @@ export default function VersionFilmstrip({ generations, activeVersionId, onSelec
             type="button"
             onClick={() => onSelect(g.id)}
             title={g.favoriteName || `${t.design} ${versionOf(g)}`}
+            aria-label={g.favoriteName || `${t.design} ${versionOf(g)}`}
             aria-pressed={g.id === activeVersionId}
             className={`relative h-12 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
               g.id === activeVersionId ? 'border-clay' : 'border-transparent hover:border-paper-line'

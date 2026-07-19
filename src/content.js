@@ -439,6 +439,9 @@ export const content = {
       upgradeCta: 'Upgrade sekarang',
       exportPng: 'Unduh PNG',
       exportPdf: 'Brief PDF',
+      progressLabel: 'Progres proyek',
+      exportOptions: 'Opsi ekspor',
+      zoomImage: 'Perbesar gambar',
       filmstripPrev: 'Versi sebelumnya',
       filmstripNext: 'Versi berikutnya',
       // AI Copilot: one-click actions that compose the prompt for the user.

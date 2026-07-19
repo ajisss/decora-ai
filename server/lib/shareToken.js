@@ -6,7 +6,17 @@
 // (or the local ephemeral secret set in server/index.js).
 import crypto from 'node:crypto'
 
-const SECRET = process.env.AUTH_JWT_SECRET ?? 'decor-ai-local-dev-share-secret'
+// Read lazily, never defaulted. A hardcoded fallback here would be published
+// in git, which makes every share token in every deployment forgeable from a
+// constant — and it fails silently, because the app keeps working. Missing
+// config must break loudly instead. (server/index.js mints an ephemeral secret
+// for local dev; on Vercel, app.js is imported directly and AUTH_JWT_SECRET
+// must actually be set.)
+function secret() {
+  const value = process.env.AUTH_JWT_SECRET
+  if (!value) throw Object.assign(new Error('AUTH_JWT_SECRET is not configured'), { code: 'config' })
+  return value
+}
 const TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 // URL-safe base64 (no padding) so it sits cleanly in a query param.
@@ -17,7 +27,7 @@ function b64url(buf) {
 export function signShareToken(projectId, generationId) {
   const expiry = Date.now() + TTL_MS
   const payload = `${projectId}|${generationId}|${expiry}`
-  const mac = crypto.createHmac('sha256', SECRET).update(payload).digest()
+  const mac = crypto.createHmac('sha256', secret()).update(payload).digest()
   return `${b64url(mac)}.${expiry}`
 }
 
@@ -30,7 +40,7 @@ export function verifyShareToken(token, projectId, generationId) {
   const expiry = Number(expiryStr)
   if (!Number.isFinite(expiry) || Date.now() > expiry) return false
   const payload = `${projectId}|${generationId}|${expiry}`
-  const expected = crypto.createHmac('sha256', SECRET).update(payload).digest()
+  const expected = crypto.createHmac('sha256', secret()).update(payload).digest()
   const given = Buffer.from(macB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
   // constant-time compare
   if (given.length !== expected.length) return false

@@ -27,7 +27,7 @@ export default function ProjectRail({
     <>
       <div className="flex items-start justify-between gap-2 p-3">
         <div className="min-w-0">
-          <h1 className="truncate font-display text-base font-semibold text-ink">{project.name}</h1>
+          <h2 className="truncate font-display text-base font-semibold text-ink">{project.name}</h2>
           <p className="truncate text-xs text-ink-muted">
             {project.setup.style || project.setup.theme} · {project.setup.venueType}
           </p>
@@ -43,12 +43,13 @@ export default function ProjectRail({
         </button>
       </div>
 
-      <nav className="space-y-0.5 px-2 pb-2">
+      <nav aria-label={t.panelRail} className="space-y-0.5 px-2 pb-2">
         {NAV_SECTIONS.map((s) => (
           <button
             key={s.value}
             type="button"
             onClick={() => onNavSectionChange(s.value)}
+            aria-current={navSection === s.value ? 'page' : undefined}
             className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${
               navSection === s.value ? 'bg-clay-soft text-clay-deep' : 'text-ink-soft hover:bg-paper hover:text-ink'
             }`}

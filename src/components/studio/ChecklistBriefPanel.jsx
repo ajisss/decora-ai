@@ -52,7 +52,7 @@ export default function ChecklistBriefPanel({
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <h1 className="font-display text-lg font-semibold text-ink">{ts.navChecklist}</h1>
+          <h2 className="font-display text-lg font-semibold text-ink">{ts.navChecklist}</h2>
           {generation && (
             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-clay-soft px-2.5 py-1 text-xs font-semibold text-clay-deep">
               <StepIcon name="checklist" className="h-3 w-3" />
@@ -71,6 +71,7 @@ export default function ChecklistBriefPanel({
               <button
                 type="button"
                 onClick={() => setZoomSrc(generation.imageId)}
+            aria-label={t.zoomImage}
                 className="block w-full overflow-hidden rounded-xl2 border border-paper-line focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
               >
                 <img src={generation.imageId} alt="" className="aspect-video w-full object-cover" />

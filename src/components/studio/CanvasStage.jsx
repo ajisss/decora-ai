@@ -37,6 +37,7 @@ export default function CanvasStage({
   }
 
   const grabbing = tool === 'pan' || zoom.canPan
+  const versionLabel = version.favoriteName || t.design
 
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden bg-paper-line/40 p-4">
@@ -96,7 +97,7 @@ export default function CanvasStage({
           style={{ transform: `translate(${zoom.translate.x}px, ${zoom.translate.y}px) scale(${zoom.scale})` }}
         >
           {version.imageId ? (
-            <img src={version.imageId} alt="" className="h-full w-full object-contain" draggable={false} />
+            <img src={version.imageId} alt={versionLabel} className="h-full w-full object-contain" draggable={false} />
           ) : (
             <div className="flex h-full items-center justify-center rounded-xl2 bg-paper-soft text-sm text-ink-muted">
               {version.status === 'pending' ? t.generatingElapsed : version.error || t.emptyErrorTitle}

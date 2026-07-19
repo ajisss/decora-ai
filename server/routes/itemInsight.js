@@ -20,7 +20,7 @@ router.post('/', async (req, res) => {
   if (!project) return res.status(404).json({ error: { message: 'Project not found', code: 'not_found' } })
 
   const generation = project.generations.find((g) => g.id === generationId)
-  const item = generation?.analysis?.items.find((i) => i.id === itemId)
+  const item = generation?.analysis?.items?.find((i) => i.id === itemId)
   if (!item) return res.status(404).json({ error: { message: 'Item not found', code: 'not_found' } })
 
   try {
