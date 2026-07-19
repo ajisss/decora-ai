@@ -308,6 +308,7 @@ export const content = {
       useAsReference: 'Jadikan referensi',
       isReference: 'Referensi ✓',
       refChip: 'Ref: Desain',
+      viewReference: 'Lihat desain ini',
       removeRef: 'Hapus referensi',
       reply: 'Balas & jadikan referensi',
       retry: 'Coba lagi',

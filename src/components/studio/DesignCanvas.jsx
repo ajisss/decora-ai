@@ -45,6 +45,8 @@ export default function DesignCanvas({
         onCompare={onCompare}
         compareCount={compareCount}
         referenceVersion={referenceVersion}
+        versionOf={versionOf}
+        onSelectVersion={onSelectVersion}
         filmstrip={
           <VersionFilmstrip
             generations={generations}

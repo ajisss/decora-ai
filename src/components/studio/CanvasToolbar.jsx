@@ -20,12 +20,9 @@ export default function CanvasToolbar({
   compareCount = 0,
 }) {
   return (
-    <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-paper-line bg-paper p-1 shadow-sm">
+    <div className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-paper-line bg-paper p-1 shadow-sm">
       <ToolButton icon="hand" active={tool === 'pan'} onClick={() => onToolChange('pan')} label={t.toolPan} />
       <ToolButton icon="arrow" active={tool === 'select'} onClick={() => onToolChange('select')} label={t.toolSelect} />
-
-      <span className="mx-1 h-4 w-px bg-paper-line" />
-
       <ToolButton icon="zoomOut" onClick={onZoomOut} label={t.zoomOut} />
       <button
         type="button"
@@ -37,9 +34,6 @@ export default function CanvasToolbar({
         {percent}%
       </button>
       <ToolButton icon="zoomTool" onClick={onZoomIn} label={t.zoomIn} />
-
-      <span className="mx-1 h-4 w-px bg-paper-line" />
-
       <ToolButton icon="frame" onClick={onFit} label={t.zoomFit} />
       <ToolButton
         icon="compare"

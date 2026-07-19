@@ -21,6 +21,8 @@ export default function CanvasStage({
   onCompare,
   compareCount = 0,
   referenceVersion,
+  versionOf,
+  onSelectVersion,
   filmstrip,
 }) {
   const zoom = useZoomPan()
@@ -72,15 +74,30 @@ export default function CanvasStage({
           reference, so you can see what the next edit is anchored to without
           leaving the canvas. Only shown when it isn't the design on screen. */}
       {referenceVersion && referenceVersion.id !== version.id && referenceVersion.imageId && (
-        <div className="absolute bottom-6 right-6 z-20 w-32 overflow-hidden rounded-lg border-2 border-clay bg-paper shadow-lg">
-          <img src={referenceVersion.imageId} alt="" className="aspect-[4/3] w-full object-cover" />
-          <p className="truncate bg-clay px-1.5 py-0.5 text-[10px] font-semibold text-white">{t.refChip}</p>
-        </div>
+        <button
+          type="button"
+          onClick={() => onSelectVersion?.(referenceVersion.id)}
+          title={`${t.refChip} ${versionOf ? versionOf(referenceVersion) : ''} — ${t.viewReference}`.trim()}
+          className="absolute bottom-6 right-6 z-20 w-28 overflow-hidden rounded-lg border-2 border-paper bg-paper shadow-lg ring-1 ring-ink/10 transition-transform hover:scale-[1.03]"
+        >
+          <img
+            src={referenceVersion.imageId}
+            alt={`${t.refChip} ${versionOf ? versionOf(referenceVersion) : ''}`.trim()}
+            className="aspect-[4/3] w-full object-cover"
+          />
+        </button>
       )}
 
       {/* Filmstrip floats over the bottom of the stage rather than taking its
           own row, so the design keeps the full height of the canvas. */}
-      {filmstrip && <div className="absolute inset-x-6 bottom-6 z-20 flex justify-start">{filmstrip}</div>}
+      {/* pointer-events-none on the wrapper (it spans the full width so it can
+          left-align its content) or its invisible right-hand slack blocks
+          clicks on whatever else shares this row — like the PiP thumbnail. */}
+      {filmstrip && (
+        <div className="pointer-events-none absolute inset-x-6 bottom-6 z-20 flex justify-start">
+          <div className="pointer-events-auto">{filmstrip}</div>
+        </div>
+      )}
 
       <div className="relative h-full w-full">
         {/* AI glow ring — sits just behind the card, blurred so only a soft
