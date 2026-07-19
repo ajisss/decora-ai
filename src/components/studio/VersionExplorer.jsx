@@ -48,11 +48,11 @@ export default function VersionExplorer({
                 active ? 'border-clay bg-clay-soft' : 'border-transparent hover:border-paper-line hover:bg-paper'
               }`}
             >
-              <button type="button" onClick={() => onSelect(g.id)} className="flex w-full items-center gap-2.5 text-left">
+              <button type="button" onClick={() => onSelect(g.id)} className="flex w-full items-center gap-3 text-left">
                 {g.imageId ? (
-                  <img src={g.imageId} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+                  <img src={g.imageId} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
                 ) : (
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-paper-line">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-paper-line">
                     {g.status === 'pending' ? (
                       <Spinner />
                     ) : (
@@ -61,20 +61,20 @@ export default function VersionExplorer({
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1 truncate text-sm font-medium text-ink">
-                    {name}
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-semibold text-ink">{name}</span>
                     {g.favorite && <StepIcon name="star" className="h-3 w-3 shrink-0 fill-clay text-clay" />}
                     {active && (
-                      <span className="ml-auto shrink-0 rounded-full bg-clay-soft px-1.5 py-0.5 text-[10px] font-semibold text-clay-deep">
+                      <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide text-clay-deep">
                         Aktif
                       </span>
                     )}
-                  </p>
-                  <p className="truncate text-xs text-ink-muted">
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-ink-muted">
                     {g.status === 'error'
                       ? t.designFailed
-                      : new Date(g.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) +
-                        ' · ' +
+                      : new Date(g.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) +
+                        ' • ' +
                         new Date(g.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>

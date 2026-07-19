@@ -16,6 +16,8 @@ export default function CanvasToolbar({
   showPins,
   onTogglePins,
   canTogglePins,
+  onCompare,
+  compareCount = 0,
 }) {
   return (
     <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-paper-line bg-paper p-1 shadow-sm">
@@ -38,6 +40,12 @@ export default function CanvasToolbar({
       <span className="mx-1 h-4 w-px bg-paper-line" />
 
       <ToolButton icon="frame" onClick={onFit} label={t.zoomFit} />
+      <ToolButton
+        icon="compare"
+        active={compareCount >= 2}
+        onClick={onCompare}
+        label={compareCount >= 2 ? t.compareInCanvas : content.app.compare.barHint}
+      />
       {canTogglePins && (
         <ToolButton icon="layersToggle" active={showPins} onClick={onTogglePins} label={t.toggleLabels} />
       )}

@@ -485,6 +485,9 @@ export default function StudioPage() {
           onToggleFavorite={handleToggleFavorite}
           onShare={handleShare}
           onExport={handleExportActive}
+          onQuickPng={() =>
+            activeVersion && downloadPng(activeVersion, project, versionOf(activeVersion))
+          }
           onOpenInspector={() => setInspectorOpen(true)}
         />
       )}
@@ -496,6 +499,10 @@ export default function StudioPage() {
           selectedObject={selectedObject}
           onSelectObject={selectObject}
           onEditSetup={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
+          onShowProjectDetail={() => {
+            setNavSection('event')
+            setInspectorOpen(false)
+          }}
           onRenameVersion={(entry) => setBookmarkTarget(entry)}
           onExportVersion={(entry) => {
             setExportedOnce(true)
@@ -537,6 +544,9 @@ export default function StudioPage() {
           onSelectObject={selectObject}
           onFullscreen={() => activeVersion && setLightboxId(activeVersion.id)}
           onNewVersion={() => composerRef.current?.focus()}
+          onCompare={() => (compareIds.length >= 2 ? setCompareOpen(true) : showToast(tc.barHint))}
+          compareCount={compareIds.length}
+          referenceVersion={referenceEntry}
           exported={exportedOnce}
           analyzing={Boolean(activeVersion) && !activeVersion.analysis}
           copilotProps={{

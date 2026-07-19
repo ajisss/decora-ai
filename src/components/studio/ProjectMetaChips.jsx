@@ -32,10 +32,12 @@ export default function ProjectMetaChips({ project, inline }) {
 
   if (inline) {
     return (
-      <div className="flex min-w-0 items-center gap-x-4 gap-y-1 overflow-x-auto text-xs">
-        {fields.map(([label, value]) => (
-          <span key={label} className="shrink-0 whitespace-nowrap text-ink-muted">
-            {label} <span className="font-medium text-ink-soft">{value}</span>
+      <div className="flex min-w-0 items-center overflow-x-auto text-xs">
+        {fields.map(([label, value], i) => (
+          <span key={label} className="flex shrink-0 items-center whitespace-nowrap">
+            {i > 0 && <span className="mx-3 h-3.5 w-px bg-paper-line" aria-hidden="true" />}
+            <span className="text-ink-muted">{label}</span>
+            <span className="ml-1.5 font-semibold text-ink">{value}</span>
           </span>
         ))}
       </div>

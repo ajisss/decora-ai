@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { StepIcon } from '../icons.jsx'
 import SyncIndicator from '../shell/SyncIndicator.jsx'
 import ProjectMetaChips from './ProjectMetaChips.jsx'
@@ -19,6 +20,7 @@ export default function WorkspaceHeader({
   onToggleFavorite,
   onShare,
   onExport,
+  onQuickPng,
   metaInline,
   showSidebarToggle,
   onOpenSidebar,
@@ -29,6 +31,10 @@ export default function WorkspaceHeader({
 }) {
   return (
     <header className="shrink-0 border-b border-paper-line bg-paper px-4 py-2.5">
+      {/* Row 1: version identity (left) and the version-scoped actions
+          (right). Row 2: the project's fixed parameters, always their own
+          line — they read as a subtitle to the version, not as more buttons
+          crowding the title row. */}
       <div className="flex items-center gap-3">
         {showSidebarToggle && (
           <button
@@ -53,8 +59,8 @@ export default function WorkspaceHeader({
           </button>
         )}
 
-        <div className="flex min-w-0 shrink-0 items-center gap-1.5">
-          <h1 className="truncate font-display text-base font-semibold text-ink">{versionName}</h1>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <h1 className="truncate font-display text-lg font-semibold text-ink">{versionName}</h1>
           {activeVersion && (
             <button
               type="button"
@@ -68,19 +74,7 @@ export default function WorkspaceHeader({
           )}
         </div>
 
-        {/* Inline chips only where there's room for them; below that (and on
-            narrow screens) the same fields collapse into one popover so the
-            header never wraps and steals canvas height. */}
-        {metaInline ? (
-          <div className="hidden min-w-0 flex-1 lg:block">
-            <ProjectMetaChips project={project} inline />
-          </div>
-        ) : (
-          <div className="min-w-0 flex-1" />
-        )}
-
         <div className="flex shrink-0 items-center gap-2">
-          {!metaInline && <ProjectMetaChips project={project} />}
           <SyncIndicator />
           <button
             type="button"
@@ -91,15 +85,7 @@ export default function WorkspaceHeader({
             <StepIcon name="external" className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{t.shareLink}</span>
           </button>
-          <button
-            type="button"
-            onClick={onExport}
-            disabled={!activeVersion}
-            className="btn-primary !px-3 !py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <StepIcon name="download" className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t.export}</span>
-          </button>
+          <ExportMenu activeVersion={activeVersion} onExport={onExport} onQuickPng={onQuickPng} />
           {showInspectorToggle && (
             <button
               type="button"
@@ -113,6 +99,86 @@ export default function WorkspaceHeader({
           )}
         </div>
       </div>
+
+      {/* Inline on wide screens; below that it collapses into one popover so
+          this row can never wrap and steal canvas height. `metaInline`
+          reflects the same breakpoint the shell used to dock the rail. */}
+      <div className="mt-1">
+        {metaInline ? <ProjectMetaChips project={project} inline /> : <ProjectMetaChips project={project} />}
+      </div>
     </header>
+  )
+}
+
+// Split button: the main action opens the full export dialog (PNG / PDF brief
+// / share link), the caret offers the one-click PNG so the common case skips
+// a dialog. Both paths hit code that already existed.
+function ExportMenu({ activeVersion, onExport, onQuickPng }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDocClick = (e) => !ref.current?.contains(e.target) && setOpen(false)
+    const onKey = (e) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDocClick)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div className="relative flex shrink-0" ref={ref}>
+      <button
+        type="button"
+        onClick={onExport}
+        disabled={!activeVersion}
+        className="btn-primary !rounded-r-none !px-3 !py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <StepIcon name="download" className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">{t.export}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        disabled={!activeVersion}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={t.export}
+        className="btn-primary !rounded-l-none !border-l !border-white/25 !px-1.5 !py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <StepIcon name="chevronDown" className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-full z-30 mt-1.5 w-44 rounded-lg border border-paper-line bg-paper py-1 shadow-lg">
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false)
+              onQuickPng()
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-ink-soft hover:bg-paper-soft"
+          >
+            <StepIcon name="image" className="h-3.5 w-3.5" />
+            {t.exportPng}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false)
+              onExport()
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-ink-soft hover:bg-paper-soft"
+          >
+            <StepIcon name="filePdf" className="h-3.5 w-3.5" />
+            {t.exportPdf}
+          </button>
+        </div>
+      )}
+    </div>
   )
 }

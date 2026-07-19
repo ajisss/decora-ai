@@ -65,11 +65,13 @@ export default function CopilotBar({ selectedObjectName, onRunChip, composerProp
         </div>
       )}
 
+      {/* Composer first, chips underneath it — the chips read as suggested
+          completions of the field above, not as a separate toolbar. */}
+      <StudioComposer {...composerProps} />
+
       {composerProps.mode === 'generate' && (
         <CopilotChips selectedObjectName={selectedObjectName} onRun={onRunChip} />
       )}
-
-      <StudioComposer {...composerProps} />
     </div>
   )
 }

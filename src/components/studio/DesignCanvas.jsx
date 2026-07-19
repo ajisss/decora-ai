@@ -19,6 +19,9 @@ export default function DesignCanvas({
   onSelectObject,
   onFullscreen,
   onNewVersion,
+  onCompare,
+  compareCount,
+  referenceVersion,
   analyzing,
   exported,
   copilotProps,
@@ -29,7 +32,7 @@ export default function DesignCanvas({
   return (
     <>
       <div className="shrink-0 border-b border-paper-line px-4 py-2">
-        <CanvasStepper project={project} selectedVersion={activeVersion} analyzing={analyzing} exported={exported} />
+        <CanvasStepper project={project} activeVersion={activeVersion} analyzing={analyzing} exported={exported} />
       </div>
 
       <CanvasStage
@@ -41,6 +44,9 @@ export default function DesignCanvas({
         selectedObjectId={selectedObjectId}
         onSelectObject={onSelectObject}
         onFullscreen={onFullscreen}
+        onCompare={onCompare}
+        compareCount={compareCount}
+        referenceVersion={referenceVersion}
       />
 
       <VersionFilmstrip

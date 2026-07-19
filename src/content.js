@@ -427,6 +427,20 @@ export const content = {
       panelRail: 'Proyek & versi',
       panelInspector: 'Inspector',
       renameObjectTitle: 'Ubah nama item',
+      viewDetail: 'Lihat detail',
+      selectedItem: 'Selected Item',
+      clearSelection: 'Batalkan pilihan',
+      removeManualOnly: 'Hanya item tambahan sendiri yang bisa dihapus',
+      removeObjectTitle: 'Hapus item ini?',
+      removeObjectBody: 'Item ini akan dihapus dari checklist dekorasi.',
+      compareInCanvas: 'Bandingkan',
+      upgradeTitle: 'Tingkatkan ke Pro',
+      upgradeBody: 'Akses fitur premium, ekspor PDF, dan brief vendor.',
+      upgradeCta: 'Upgrade sekarang',
+      exportPng: 'Unduh PNG',
+      exportPdf: 'Brief PDF',
+      filmstripPrev: 'Versi sebelumnya',
+      filmstripNext: 'Versi berikutnya',
       // AI Copilot: one-click actions that compose the prompt for the user.
       // `whole` retouches the entire design; `object` is scoped to one item.
       copilotChips: {
@@ -449,6 +463,8 @@ export const content = {
       design: 'Desain',
       searchPlaceholder: 'Cari item…',
       noMatch: 'Tidak ada item yang cocok.',
+      analysisHeading: 'Analysis',
+      itemCount: (n) => `${n} item`,
       // Peta label tampilan ID — nilai data/enum tetap EN (tersimpan di project & schema server).
       categoryLabels: {
         Stage: 'Panggung',

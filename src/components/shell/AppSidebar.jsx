@@ -53,7 +53,9 @@ export default function AppSidebar({
   const navigate = useNavigate()
   const mobile = useMediaQuery(mqMobile)
   const [hoverExpanded, setHoverExpanded] = useState(false)
-  const [selfCollapsed, setSelfCollapsed] = useState(true)
+  // Expanded by default even in the workspace — the reference layout shows the
+  // labelled nav, with "Minimalkan menu" as the way to reclaim the width.
+  const [selfCollapsed, setSelfCollapsed] = useState(false)
 
   const isCollapsed = forceCollapsed ? selfCollapsed : collapsed
   const toggleCollapse = forceCollapsed ? () => setSelfCollapsed((c) => !c) : onToggleCollapse ?? (() => {})
@@ -120,6 +122,28 @@ export default function AppSidebar({
           ))}
         </nav>
 
+        {!narrow && (
+          <div className="px-3 pb-3">
+            <div className="rounded-xl2 border border-clay/20 bg-clay-soft/50 p-3">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                <StepIcon name="star" className="h-3.5 w-3.5 fill-clay text-clay" />
+                {content.app.studio.upgradeTitle}
+              </p>
+              <p className="mt-1 text-xs leading-snug text-ink-muted">{content.app.studio.upgradeBody}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose()
+                  navigate('/settings')
+                }}
+                className="btn-ghost mt-2.5 w-full !border-clay/40 !py-1.5 text-xs !text-clay-deep"
+              >
+                {content.app.studio.upgradeCta}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="px-3 pb-2">
           <button
             type="button"
@@ -157,10 +181,11 @@ export default function AppSidebar({
                     }}
                     aria-label={content.app.shell.logout}
                     title={content.app.shell.logout}
-                    className="shrink-0 rounded-md p-1.5 text-ink-muted opacity-100 transition-opacity hover:bg-paper-line hover:text-danger lg:opacity-0 lg:group-hover:opacity-100"
+                    className="shrink-0 rounded-md p-1.5 text-ink-muted transition-colors hover:bg-paper-line hover:text-danger"
                   >
                     <StepIcon name="logout" className="h-4 w-4" />
                   </button>
+                  <StepIcon name="chevronDown" className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
                 </>
               )}
             </div>

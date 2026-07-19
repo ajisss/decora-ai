@@ -18,6 +18,9 @@ export default function CanvasStage({
   selectedObjectId,
   onSelectObject,
   onFullscreen,
+  onCompare,
+  compareCount = 0,
+  referenceVersion,
 }) {
   const zoom = useZoomPan()
   const items = version?.analysis?.items ?? []
@@ -47,6 +50,8 @@ export default function CanvasStage({
           showPins={showPins}
           onTogglePins={onTogglePins}
           canTogglePins={pinnable.length > 0}
+          onCompare={onCompare}
+          compareCount={compareCount}
         />
       </div>
 
@@ -59,6 +64,16 @@ export default function CanvasStage({
       >
         <StepIcon name="fullscreen" className="h-4 w-4" />
       </button>
+
+      {/* Picture-in-picture: the design currently pinned as the generation
+          reference, so you can see what the next edit is anchored to without
+          leaving the canvas. Only shown when it isn't the design on screen. */}
+      {referenceVersion && referenceVersion.id !== version.id && referenceVersion.imageId && (
+        <div className="absolute bottom-6 right-6 z-10 w-32 overflow-hidden rounded-lg border-2 border-clay bg-paper shadow-lg">
+          <img src={referenceVersion.imageId} alt="" className="aspect-[4/3] w-full object-cover" />
+          <p className="truncate bg-clay px-1.5 py-0.5 text-[10px] font-semibold text-white">{t.refChip}</p>
+        </div>
+      )}
 
       <div
         className={`relative mx-auto h-full w-full max-w-5xl select-none overflow-hidden rounded-xl2 ${
@@ -82,19 +97,34 @@ export default function CanvasStage({
             </div>
           )}
 
-          {visiblePins.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onSelectObject(item.id === selectedObjectId ? null : item.id)}
-              style={{ left: `${item.position.x}%`, top: `${item.position.y}%` }}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors ${
-                item.id === selectedObjectId ? 'bg-clay text-white' : 'bg-white/90 text-ink-soft hover:bg-white'
-              }`}
-            >
-              {item.name}
-            </button>
-          ))}
+          {visiblePins.map((item) => {
+            const active = item.id === selectedObjectId
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onSelectObject(item.id === selectedObjectId ? null : item.id)}
+                style={{ left: `${item.position.x}%`, top: `${item.position.y}%` }}
+                className="group absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5"
+              >
+                {/* Marker dot + short leader, so the label reads as pointing at
+                    a spot rather than floating over the middle of the image. */}
+                <span
+                  className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 shadow-sm ${
+                    active ? 'border-white bg-clay' : 'border-white bg-ink/50 group-hover:bg-ink/70'
+                  }`}
+                />
+                <span className={`h-px w-2 shrink-0 ${active ? 'bg-clay' : 'bg-white/70'}`} />
+                <span
+                  className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors ${
+                    active ? 'bg-clay text-white' : 'bg-white/95 text-ink-soft group-hover:bg-white'
+                  }`}
+                >
+                  {item.name}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

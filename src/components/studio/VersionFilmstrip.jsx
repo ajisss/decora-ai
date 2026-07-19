@@ -1,16 +1,27 @@
+import { useRef } from 'react'
 import { StepIcon } from '../icons.jsx'
 import { content } from '../../content.js'
 
 const t = content.app.studio
 
 // Quick-switch strip under the canvas. Same versions array as the rail — this
-// is a shortcut, not a second source of truth.
+// is a shortcut, not a second source of truth. Arrows appear only when the
+// strip actually overflows, so they never sit there doing nothing.
 export default function VersionFilmstrip({ generations, activeVersionId, onSelect, versionOf, onNewVersion }) {
+  const scrollRef = useRef(null)
+
   if (generations.length === 0) return null
+
+  const scrollBy = (delta) => scrollRef.current?.scrollBy({ left: delta, behavior: 'smooth' })
+  const overflows = generations.length > 6
 
   return (
     <div className="flex shrink-0 items-center gap-2 border-t border-paper-line px-4 py-2">
-      <div className="flex flex-1 items-center gap-2 overflow-x-auto">
+      {overflows && (
+        <ArrowButton icon="chevronRight" flip label={t.filmstripPrev} onClick={() => scrollBy(-240)} />
+      )}
+
+      <div ref={scrollRef} className="flex flex-1 items-center gap-2 overflow-x-auto scroll-smooth">
         {generations.map((g) => (
           <button
             key={g.id}
@@ -18,7 +29,7 @@ export default function VersionFilmstrip({ generations, activeVersionId, onSelec
             onClick={() => onSelect(g.id)}
             title={g.favoriteName || `${t.design} ${versionOf(g)}`}
             aria-pressed={g.id === activeVersionId}
-            className={`h-12 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
+            className={`relative h-12 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
               g.id === activeVersionId ? 'border-clay' : 'border-transparent hover:border-paper-line'
             }`}
           >
@@ -29,9 +40,15 @@ export default function VersionFilmstrip({ generations, activeVersionId, onSelec
                 <StepIcon name="image" className="h-3.5 w-3.5 text-ink-muted" />
               </div>
             )}
+            {g.favorite && (
+              <StepIcon name="star" className="absolute right-0.5 top-0.5 h-3 w-3 fill-clay text-clay drop-shadow" />
+            )}
           </button>
         ))}
       </div>
+
+      {overflows && <ArrowButton icon="chevronRight" label={t.filmstripNext} onClick={() => scrollBy(240)} />}
+
       <button
         type="button"
         onClick={onNewVersion}
@@ -42,5 +59,19 @@ export default function VersionFilmstrip({ generations, activeVersionId, onSelec
         <StepIcon name="plus" className="h-4 w-4" />
       </button>
     </div>
+  )
+}
+
+function ArrowButton({ icon, flip, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-paper-line bg-paper text-ink-soft hover:text-clay-deep"
+    >
+      <StepIcon name={icon} className={`h-3.5 w-3.5 ${flip ? 'rotate-180' : ''}`} />
+    </button>
   )
 }
