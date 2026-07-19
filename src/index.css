@@ -92,6 +92,33 @@
     animation: ai-pulse 2.4s ease-out infinite;
   }
 
+  /* Ambient AI glow: reuses the same idea as .animate-ai-pulse (the
+     composer's "listening" avatar) — a soft clay halo, not a second color —
+     so the generated-image card reads as "something generative made this"
+     the same restrained way the rest of the app already signals it, instead
+     of introducing an off-brand rainbow. Two blobs drifting slowly past each
+     other keep it from looking like a static tinted border. */
+  @keyframes ai-glow-drift {
+    0%,
+    100% {
+      background-position:
+        30% 20%,
+        75% 80%;
+    }
+    50% {
+      background-position:
+        40% 30%,
+        65% 70%;
+    }
+  }
+  .bg-ai-glow {
+    background-image:
+      radial-gradient(120% 120% at 30% 20%, rgba(192, 95, 60, 0.9), transparent 60%),
+      radial-gradient(120% 120% at 75% 80%, rgba(192, 95, 60, 0.6), transparent 60%);
+    background-size: 180% 180%;
+    animation: ai-glow-drift 12s ease-in-out infinite;
+  }
+
   /* Ambient drift for the decorative hero photos. Purely atmospheric — the
      global prefers-reduced-motion rule collapses the duration and freezes it. */
   @keyframes float {

@@ -82,56 +82,64 @@ export default function CanvasStage({
           own row, so the design keeps the full height of the canvas. */}
       {filmstrip && <div className="absolute inset-x-6 bottom-6 z-20 flex justify-start">{filmstrip}</div>}
 
-      <div
-        className={`relative h-full w-full select-none overflow-hidden rounded-xl2 ${
-          grabbing ? 'cursor-grab active:cursor-grabbing' : ''
-        }`}
-        onWheel={zoom.onWheel}
-        onPointerDown={zoom.onPointerDown}
-        onPointerMove={zoom.onPointerMove}
-        onPointerUp={zoom.onPointerUp}
-        onPointerLeave={zoom.onPointerUp}
-      >
-        <div
-          className="h-full w-full origin-center transition-transform duration-100"
-          style={{ transform: `translate(${zoom.translate.x}px, ${zoom.translate.y}px) scale(${zoom.scale})` }}
-        >
-          {version.imageId ? (
-            <img src={version.imageId} alt={versionLabel} className="h-full w-full object-contain" draggable={false} />
-          ) : (
-            <div className="flex h-full items-center justify-center rounded-xl2 bg-paper-soft text-sm text-ink-muted">
-              {version.status === 'pending' ? t.generatingElapsed : version.error || t.emptyErrorTitle}
-            </div>
-          )}
+      <div className="relative h-full w-full">
+        {/* AI glow ring — sits just behind the card, blurred so only a soft
+            shimmering edge peeks past it. Purely decorative (aria-hidden);
+            frozen by the global prefers-reduced-motion rule like every other
+            ambient animation in the app. */}
+        <div aria-hidden="true" className="pointer-events-none absolute -inset-3 rounded-xl2 bg-ai-glow opacity-40 blur-2xl" />
 
-          {visiblePins.map((item) => {
-            const active = item.id === selectedObjectId
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onSelectObject(item.id === selectedObjectId ? null : item.id)}
-                style={{ left: `${item.position.x}%`, top: `${item.position.y}%` }}
-                className="group absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5"
-              >
-                {/* Marker dot + short leader, so the label reads as pointing at
-                    a spot rather than floating over the middle of the image. */}
-                <span
-                  className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 shadow-sm ${
-                    active ? 'border-white bg-clay' : 'border-white bg-ink/50 group-hover:bg-ink/70'
-                  }`}
-                />
-                <span className={`h-px w-2 shrink-0 ${active ? 'bg-clay' : 'bg-white/70'}`} />
-                <span
-                  className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors ${
-                    active ? 'bg-clay text-white' : 'bg-white/95 text-ink-soft group-hover:bg-white'
-                  }`}
+        <div
+          className={`relative h-full w-full select-none overflow-hidden rounded-xl2 bg-paper ${
+            grabbing ? 'cursor-grab active:cursor-grabbing' : ''
+          }`}
+          onWheel={zoom.onWheel}
+          onPointerDown={zoom.onPointerDown}
+          onPointerMove={zoom.onPointerMove}
+          onPointerUp={zoom.onPointerUp}
+          onPointerLeave={zoom.onPointerUp}
+        >
+          <div
+            className="h-full w-full origin-center transition-transform duration-100"
+            style={{ transform: `translate(${zoom.translate.x}px, ${zoom.translate.y}px) scale(${zoom.scale})` }}
+          >
+            {version.imageId ? (
+              <img src={version.imageId} alt={versionLabel} className="h-full w-full object-contain" draggable={false} />
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-xl2 bg-paper-soft text-sm text-ink-muted">
+                {version.status === 'pending' ? t.generatingElapsed : version.error || t.emptyErrorTitle}
+              </div>
+            )}
+
+            {visiblePins.map((item) => {
+              const active = item.id === selectedObjectId
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onSelectObject(item.id === selectedObjectId ? null : item.id)}
+                  style={{ left: `${item.position.x}%`, top: `${item.position.y}%` }}
+                  className="group absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5"
                 >
-                  {item.name}
-                </span>
-              </button>
-            )
-          })}
+                  {/* Marker dot + short leader, so the label reads as pointing
+                      at a spot rather than floating over the middle of the image. */}
+                  <span
+                    className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 shadow-sm ${
+                      active ? 'border-white bg-clay' : 'border-white bg-ink/50 group-hover:bg-ink/70'
+                    }`}
+                  />
+                  <span className={`h-px w-2 shrink-0 ${active ? 'bg-clay' : 'bg-white/70'}`} />
+                  <span
+                    className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors ${
+                      active ? 'bg-clay text-white' : 'bg-white/95 text-ink-soft group-hover:bg-white'
+                    }`}
+                  >
+                    {item.name}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
