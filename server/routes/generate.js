@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { nanoid } from 'nanoid'
 import { waitUntil } from '@vercel/functions'
 import { getProject, saveProject, saveImage, readImage, readUpload } from '../lib/store.js'
-import { generateImage, editImage } from '../lib/googleImage.js'
+import { generateImage, editImage } from '../lib/imaginer.js'
 import { mockGenerateImage, MOCK_AI_ENABLED } from '../lib/mockAi.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 
@@ -15,9 +15,9 @@ function todayCount(project) {
   return project.generations.filter((g) => g.createdAt.slice(0, 10) === today).length
 }
 
-// Loads a reference image's bytes for image-to-image generation. Gemini takes
-// the reference as inline base64 data in the same request, so — unlike the
-// previous kie.ai client — no publicly reachable URL is required.
+// Loads a reference image's bytes for image-to-image generation. Imaginer
+// accepts a direct upload of the file, so — unlike the previous kie.ai
+// client — no publicly reachable URL is required.
 async function loadReference(referenceGenerationImageId, referenceImageId) {
   try {
     if (referenceGenerationImageId) return { buffer: await readImage(referenceGenerationImageId), mime: 'image/png' }
@@ -28,9 +28,9 @@ async function loadReference(referenceGenerationImageId, referenceImageId) {
   }
 }
 
-// Image generation can take anywhere from tens of seconds to a couple minutes,
-// far past what's reasonable to hold an HTTP request open for. Generation runs
-// in the background; the client discovers completion via GET /api/projects/:id
+// Imaginer's task can take anywhere from tens of seconds to a few minutes, far
+// past what's reasonable to hold an HTTP request open for. Generation runs in
+// the background; the client discovers completion via GET /api/projects/:id
 // polling — the same recovery path that already handles a page refresh
 // mid-generation (wireflow §5.3 / tasks.md G12).
 async function runGenerationInBackground(projectId, userId, generationId, effectivePrompt, reference) {
