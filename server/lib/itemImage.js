@@ -6,7 +6,7 @@
 // so there's a single on/off switch for "spend real credits" instead of two.
 // When mocked, it fetches a real, freely-licensed stock photo per decoration
 // category (Wikimedia Commons — cached in memory, falls back to the parent
-// design's own image if the fetch fails) instead of calling Imaginer.
+// design's own image if the fetch fails) instead of calling Gemini.
 const USE_MOCK = process.env.MOCK_AI === 'true'
 
 // One real photo per taxonomy category (ux-spec §8.2's fixed list), sourced
@@ -81,12 +81,12 @@ async function mockGenerate(category, parentImageBuffer) {
 }
 
 // Real: image-to-image using the parent design as the reference, so the item
-// image is a close-up of that exact piece (same Imaginer model as R3/R4, but
-// with style 'none' and a square ratio — R3/R4 wants creative reinterpretation,
-// this wants the opposite: minimal drift from the reference).
+// image is a close-up of that exact piece (same Gemini model as R3/R4, but
+// with a square ratio — R3/R4 wants creative reinterpretation, this wants the
+// opposite: minimal drift from the reference, which the prompt itself enforces).
 async function realGenerate(prompt, parentImageBuffer) {
-  const { editImage } = await import('./imaginer.js')
-  return editImage(prompt, parentImageBuffer, 'image/png', { style: 'none', ratio: '1:1' })
+  const { editImage } = await import('./googleImage.js')
+  return editImage(prompt, parentImageBuffer, 'image/png', { ratio: '1:1' })
 }
 
 export async function generateItemImage({ prompt, category, parentImageBuffer }) {
