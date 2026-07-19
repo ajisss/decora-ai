@@ -31,9 +31,7 @@ export default function DesignCanvas({
 
   return (
     <>
-      <div className="shrink-0 border-b border-paper-line px-4 py-2">
-        <CanvasStepper project={project} activeVersion={activeVersion} analyzing={analyzing} exported={exported} />
-      </div>
+      <CanvasStepper project={project} activeVersion={activeVersion} analyzing={analyzing} exported={exported} />
 
       <CanvasStage
         version={activeVersion}
@@ -47,14 +45,15 @@ export default function DesignCanvas({
         onCompare={onCompare}
         compareCount={compareCount}
         referenceVersion={referenceVersion}
-      />
-
-      <VersionFilmstrip
-        generations={generations}
-        activeVersionId={activeVersionId}
-        onSelect={onSelectVersion}
-        versionOf={versionOf}
-        onNewVersion={onNewVersion}
+        filmstrip={
+          <VersionFilmstrip
+            generations={generations}
+            activeVersionId={activeVersionId}
+            onSelect={onSelectVersion}
+            versionOf={versionOf}
+            onNewVersion={onNewVersion}
+          />
+        }
       />
 
       <CopilotBar {...copilotProps} />

@@ -53,9 +53,10 @@ export default function AppSidebar({
   const navigate = useNavigate()
   const mobile = useMediaQuery(mqMobile)
   const [hoverExpanded, setHoverExpanded] = useState(false)
-  // Expanded by default even in the workspace — the reference layout shows the
-  // labelled nav, with "Minimalkan menu" as the way to reclaim the width.
-  const [selfCollapsed, setSelfCollapsed] = useState(false)
+  // Icon-only by default in the Design Workspace: the canvas is the point of
+  // this page, so it gets the width. Hovering the rail (or the toggle) brings
+  // the labels back.
+  const [selfCollapsed, setSelfCollapsed] = useState(true)
 
   const isCollapsed = forceCollapsed ? selfCollapsed : collapsed
   const toggleCollapse = forceCollapsed ? () => setSelfCollapsed((c) => !c) : onToggleCollapse ?? (() => {})

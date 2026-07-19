@@ -44,8 +44,8 @@ export default function VersionExplorer({
           return (
             <div
               key={g.id}
-              className={`group rounded-lg border p-2 transition-colors ${
-                active ? 'border-clay bg-clay-soft' : 'border-transparent hover:border-paper-line hover:bg-paper'
+              className={`group rounded-xl2 border p-2.5 transition-colors ${
+                active ? 'border-clay bg-clay-soft' : 'border-paper-line bg-paper hover:border-ink/15'
               }`}
             >
               <button type="button" onClick={() => onSelect(g.id)} className="flex w-full items-center gap-3 text-left">

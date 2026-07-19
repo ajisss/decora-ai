@@ -16,7 +16,7 @@ export default function VersionFilmstrip({ generations, activeVersionId, onSelec
   const overflows = generations.length > 6
 
   return (
-    <div className="flex shrink-0 items-center gap-2 border-t border-paper-line px-4 py-2">
+    <div className="flex max-w-full items-center gap-2 rounded-xl2 border border-paper-line bg-paper/95 p-2 shadow-lg backdrop-blur">
       {overflows && (
         <ArrowButton icon="chevronRight" flip label={t.filmstripPrev} onClick={() => scrollBy(-240)} />
       )}

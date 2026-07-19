@@ -42,7 +42,7 @@ export default function CopilotBar({ selectedObjectName, onRunChip, composerProp
   }, [open])
 
   return (
-    <div className="shrink-0 space-y-2 border-t border-paper-line bg-paper px-4 pb-4 pt-3">
+    <div className="shrink-0 space-y-2 rounded-xl2 border border-paper-line bg-paper p-3 shadow-sm mx-4 mb-4">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
           <StepIcon name="spark" className="h-3.5 w-3.5 text-clay-deep" />

@@ -27,11 +27,11 @@ export default function CanvasStepper({ project, activeVersion, analyzing, expor
       {/* min-w-0 + truncate on every label, and a shrinking connector, so all
           5 steps fit without an unindicated horizontal clip at normal canvas
           widths — this only reaches for overflow-x-auto as a last resort. */}
-      <ol className="flex items-center gap-0.5 overflow-x-auto rounded-xl2 border border-paper-line bg-paper px-3 py-2">
+      <ol className="flex items-center justify-between gap-0.5 overflow-x-auto rounded-xl2 border border-paper-line bg-paper px-3 py-2">
         {steps.map((s, i) => {
           const state = s.done ? 'done' : s.active ? 'active' : 'waiting'
           return (
-            <li key={s.label} className="flex min-w-0 flex-1 items-center">
+            <li key={s.label} className="flex shrink-0 items-center">
               {i > 0 && (
                 <span className="mx-1.5 h-px w-3 shrink-0 bg-paper-line sm:mx-2 sm:w-6" aria-hidden="true" />
               )}
@@ -54,16 +54,16 @@ export default function CanvasStepper({ project, activeVersion, analyzing, expor
                 )}
               </span>
 
-              <span className="ml-1.5 flex min-w-0 flex-col leading-tight">
+              <span className="ml-1.5 flex flex-col leading-tight">
                 <span
-                  className={`truncate text-[11px] font-semibold sm:text-xs ${
+                  className={`whitespace-nowrap text-[11px] font-semibold sm:text-xs ${
                     state === 'active' ? 'text-clay-deep' : state === 'done' ? 'text-ink' : 'text-ink-muted'
                   }`}
                 >
                   {i + 1}. {s.label}
                 </span>
                 <span
-                  className={`hidden truncate text-[10px] sm:block ${
+                  className={`hidden whitespace-nowrap text-[10px] sm:block ${
                     state === 'active' ? 'text-clay' : state === 'done' ? 'text-success' : 'text-ink-muted'
                   }`}
                 >
