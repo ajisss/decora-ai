@@ -32,7 +32,7 @@ export default function CanvasStage({
 
   if (!version) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center bg-paper-line/40 p-4 text-sm text-ink-muted">
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-paper p-4 text-sm text-ink-muted">
         {t.emptyBody}
       </div>
     )
@@ -42,7 +42,7 @@ export default function CanvasStage({
   const versionLabel = version.favoriteName || t.design
 
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden bg-paper-line/40 p-4">
+    <div className="relative min-h-0 flex-1 overflow-hidden bg-paper p-4">
       {/* Toolbar sits inside the stage at top-left, over the design. */}
       <div className="pointer-events-none absolute left-6 top-6 z-20 flex">
         <CanvasToolbar
@@ -100,14 +100,12 @@ export default function CanvasStage({
       )}
 
       <div className="relative h-full w-full">
-        {/* AI glow ring — sits just behind the card, blurred so only a soft
-            shimmering edge peeks past it. Purely decorative (aria-hidden);
-            frozen by the global prefers-reduced-motion rule like every other
-            ambient animation in the app. */}
-        <div aria-hidden="true" className="pointer-events-none absolute -inset-3 rounded-xl2 bg-ai-glow opacity-40 blur-2xl" />
-
+        {/* The soft mesh gradient lives on the card itself (bg-canvas-card,
+            below) so it's contained by the card's own rounded-xl2 +
+            overflow-hidden — no separate blurred glow layer to bleed past
+            the card edge and tint the white stage panel around it. */}
         <div
-          className={`relative h-full w-full select-none overflow-hidden rounded-xl2 bg-paper ${
+          className={`relative h-full w-full select-none overflow-hidden rounded-xl2 bg-canvas-card ${
             grabbing ? 'cursor-grab active:cursor-grabbing' : ''
           }`}
           onWheel={zoom.onWheel}
