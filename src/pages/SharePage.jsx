@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { content } from '../content.js'
 import { api } from '../api/client.js'
 import EmptyState from '../components/ui/EmptyState.jsx'
@@ -7,19 +7,31 @@ import EmptyState from '../components/ui/EmptyState.jsx'
 const t = content.app.share
 const ta = content.app.analyze
 
-// Halaman berbagi lihat-saja (publik, tanpa gate) — mock share link:
-// siapa pun yang punya URL bisa melihat desain + checklist, tanpa kontrol akses.
+// Public, view-only shared design. The link carries a signed, expiring token
+// (?t=…) minted by the owner — routes/share.js verifies it server-side, so a
+// guessed or expired link is rejected instead of leaking the plan.
 export default function SharePage() {
   const { projectId, generationId } = useParams()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('t')
   const [project, setProject] = useState(null)
   const [failed, setFailed] = useState(false)
+  const [reason, setReason] = useState(null)
 
   useEffect(() => {
+    if (!token) {
+      setFailed(true)
+      setReason(t.invalid)
+      return
+    }
     api
-      .getProject(projectId)
+      .share.get({ projectId, generationId, token })
       .then(({ project }) => setProject(project))
-      .catch(() => setFailed(true))
-  }, [projectId])
+      .catch((err) => {
+        setFailed(true)
+        setReason(err.code === 'forbidden' ? t.invalid : t.notFound)
+      })
+  }, [projectId, generationId, token])
 
   const generation = project?.generations.find((g) => g.id === generationId && g.status === 'done')
   const items = generation?.analysis?.items.filter((i) => i.included) ?? []
@@ -37,7 +49,7 @@ export default function SharePage() {
 
       <main className="mx-auto max-w-[720px] px-6 py-10">
         {failed || (project && !generation) ? (
-          <EmptyState illustration="canvas" title={t.notFound} />
+          <EmptyState illustration="canvas" title={reason ?? t.notFound} />
         ) : !project ? (
           <div className="aspect-[4/3] animate-pulse rounded-xl2 bg-paper-line" />
         ) : (
@@ -61,7 +73,9 @@ export default function SharePage() {
                       <span>
                         <span className="text-ink-muted">{ta.categoryLabels[item.category] ?? item.category}:</span>{' '}
                         <span className="font-medium text-ink">{item.name}</span>
-                        {item.estimatedQuantity && <span className="text-ink-muted"> ({item.estimatedQuantity})</span>}
+                        {item.estimatedQuantity && (
+                          <span className="text-ink-muted"> ({item.estimatedQuantity})</span>
+                        )}
                       </span>
                     </li>
                   ))}

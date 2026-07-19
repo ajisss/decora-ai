@@ -1,25 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
+import { nanoid } from 'nanoid'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import AppShell from '../components/shell/AppShell.jsx'
-import SegmentedControl from '../components/wizard/SegmentedControl.jsx'
 import { StepIcon } from '../components/icons.jsx'
-import GenerationEntry from '../components/generator/GenerationEntry.jsx'
-import PlanMessage from '../components/generator/PlanMessage.jsx'
+import ProjectRail from '../components/studio/ProjectRail.jsx'
+import DesignCanvas from '../components/studio/DesignCanvas.jsx'
+import Inspector from '../components/studio/Inspector.jsx'
 import AnalyzePanel from '../components/analyzer/AnalyzePanel.jsx'
-import FavoriteCard from '../components/studio/FavoriteCard.jsx'
 import BookmarkNameDialog from '../components/studio/BookmarkNameDialog.jsx'
 import ExportDialog from '../components/export/ExportDialog.jsx'
 import { downloadPng } from '../components/export/buildBriefPdf.js'
+import { shareVersion } from '../components/export/shareLink.js'
 import { useProjects } from '../context/ProjectsContext.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
-import ReferenceImageInput from '../components/generator/ReferenceImageInput.jsx'
 import { api } from '../api/client.js'
 import { content } from '../content.js'
 
 const t = content.app.studio
-const mqMobile = '(max-width: 1023px)'
 const tc = content.app.compare
 
 // Per-project feed scroll offsets, kept for the life of the tab so navigating
@@ -32,7 +31,7 @@ export default function StudioPage() {
   const { state } = location
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { getProject, runGeneration, runPlan, cancelGeneration, refreshProject, updateProject } = useProjects()
+  const { getProject, runGeneration, runPlan, cancelGeneration, refreshProject, updateProject, runItemImage } = useProjects()
   const { showToast } = useToast()
   const project = getProject(projectId)
 
@@ -41,24 +40,25 @@ export default function StudioPage() {
   const [modeMenuOpen, setModeMenuOpen] = useState(false)
   const modeMenuRef = useRef(null)
   const [composerImage, setComposerImage] = useState(null) // data URL — freshly uploaded reference, distinct from "Jadikan referensi" on a past design
-  const [rightTab, setRightTab] = useState('informasi')
-  const [rightPanelOpen, setRightPanelOpen] = useState(false)
-  const [mobile, setMobile] = useState(() => window.matchMedia(mqMobile).matches)
-
-  useEffect(() => {
-    const m = window.matchMedia(mqMobile)
-    const on = () => setMobile(m.matches)
-    on()
-    m.addEventListener?.('change', on)
-    return () => m.removeEventListener?.('change', on)
-  }, [])
-  const [favoriteQuery, setFavoriteQuery] = useState('')
   // Store ids, not the generation objects themselves — the objects go stale
   // the moment context updates (e.g. an item-image finishing while the panel
   // is open), so panels must always look the current one up live by id.
   const [lightboxId, setLightboxId] = useState(null)
   const [analyzeTargetId, setAnalyzeTargetId] = useState(null)
   const [exportTargetId, setExportTargetId] = useState(null)
+  // Design Workspace: which project-nav section is showing (Ringkasan/Informasi
+  // Acara/Checklist & Brief), and which version the Version Explorer has
+  // selected — the latter tracks analyzeTargetId for now (both mean "the
+  // active version"); DesignCanvas/Inspector read it once built.
+  const [navSection, setNavSection] = useState('summary')
+  const [deleteVersionTarget, setDeleteVersionTarget] = useState(null)
+  // Object Properties (Inspector, Level 4): which checklist item is selected —
+  // drives the Canvas pin highlight, the Inspector's detail view, and the AI
+  // Copilot composer's scoping ("modify only this object" vs. the whole design).
+  const [selectedObjectId, setSelectedObjectId] = useState(null)
+  // Cosmetic-only: has the user opened Export at least once this session —
+  // feeds the derived stepper's "Export" step. Not persisted.
+  const [exportedOnce, setExportedOnce] = useState(false)
   const [referenceEntry, setReferenceEntry] = useState(null)
   const [compareIds, setCompareIds] = useState([]) // maks 2 id desain untuk dibandingkan
   const [compareOpen, setCompareOpen] = useState(false)
@@ -75,7 +75,6 @@ export default function StudioPage() {
   const autorunFired = useRef(false)
   const mainRef = useRef(null)
   const entryRefs = useRef(new Map())
-  const analysisSectionRef = useRef(null)
   const composerRef = useRef(null)
   const prevTimelineCount = useRef(null)
   const genParamHandled = useRef(false)
@@ -91,6 +90,10 @@ export default function StudioPage() {
   const messages = project?.messages ?? []
   const isPending = generations.some((g) => g.status === 'pending')
   const isPlanPending = messages.some((m) => m.status === 'pending')
+  // True when every generation has failed (e.g. mock/network down right after
+  // an autorun) and none succeeded — surface a dedicated recovery empty state
+  // instead of leaving the user staring at a lone error card.
+  const allErrored = generations.length > 0 && generations.every((g) => g.status === 'error')
   // Unified oldest-first feed (chat convention: latest at the bottom) — generation
   // cards and plan-mode turns interleaved by timestamp so the conversation reads
   // as one thread. `generations`/`messages` themselves stay newest-first (version
@@ -110,12 +113,11 @@ export default function StudioPage() {
     setTimeout(() => setFlashId((f) => (f === id ? null : f)), 600)
   }
 
-  // Informasi's Analisis section always shows a target — the Analisis CTA on a
-  // design bubble/lightbox/export just refocuses it and jumps the right panel there.
+  // The Inspector always shows the active version's analysis — the Analisis
+  // CTA on a design bubble/lightbox/export just refocuses which one that is.
   const focusAnalysis = (id) => {
     setAnalyzeTargetId(id)
-    setRightTab('informasi')
-    setTimeout(() => analysisSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+    setSelectedObjectId(null)
   }
 
   useEffect(() => {
@@ -282,6 +284,25 @@ export default function StudioPage() {
     setNote('')
   }
 
+  // AI Copilot context-awareness: with an object selected, "send" scopes the
+  // edit to just that checklist item (existing runItemImage — the same call
+  // ChecklistRow's "Kustomisasi" already makes) instead of regenerating the
+  // whole design. No new business logic, just a different entry point.
+  const handleComposerGenerate = () => {
+    if (selectedObjectId && analyzeTarget) {
+      if (!note.trim()) return
+      runItemImage(project.id, analyzeTarget.id, selectedObjectId, note)
+      setNote('')
+      return
+    }
+    handleGenerate()
+  }
+
+  const handleShare = () => {
+    if (!analyzeTarget) return
+    shareVersion(project, analyzeTarget, showToast)
+  }
+
   // "Pakai brief ini": drop the advisor's proposed brief into the composer and
   // flip to Generate so the next send actually draws it.
   const handleUseBrief = (brief) => {
@@ -310,8 +331,9 @@ export default function StudioPage() {
     composerRef.current?.focus()
   }
 
-  // Marking a design favorite requires naming it first (the dialog); removing
-  // one doesn't — un-favoriting is reversible and needs no ceremony.
+  // Favoriting is one click — save immediately with a default name (the
+  // design's version), no forced naming dialog. Renaming stays available
+  // later via the Favorit tab's rename affordance (see FavoriteCard.onRename).
   const handleToggleFavorite = (entry) => {
     if (entry.favorite) {
       updateProject(project.id, (p) => ({
@@ -320,17 +342,29 @@ export default function StudioPage() {
       }))
       return
     }
-    setBookmarkTarget(entry)
+    const defaultName = `${t.design} ${versionOf(entry)}`
+    updateProject(project.id, (p) => ({
+      ...p,
+      generations: p.generations.map((g) =>
+        g.id === entry.id ? { ...g, favorite: true, favoriteName: defaultName } : g,
+      ),
+    }))
+    showToast(t.favoriteSaved)
   }
 
+  // Naming any version (Version Explorer's rename) vs. renaming an existing
+  // favorite (FavoriteCard) share this one dialog — the only difference is
+  // whether it should also flip `favorite` on. A version renamed here that
+  // wasn't already favorited stays not-favorited (renaming shouldn't have
+  // the side effect of starring it).
   const saveBookmarkName = (name) => {
     if (!bookmarkTarget) return
     const wasFavorite = bookmarkTarget.favorite
     updateProject(project.id, (p) => ({
       ...p,
-      generations: p.generations.map((g) => (g.id === bookmarkTarget.id ? { ...g, favorite: true, favoriteName: name } : g)),
+      generations: p.generations.map((g) => (g.id === bookmarkTarget.id ? { ...g, favoriteName: name } : g)),
     }))
-    showToast(wasFavorite ? t.favoriteRenamed : t.favoriteSaved)
+    showToast(wasFavorite ? t.favoriteRenamed : t.versionRenamed)
     setBookmarkTarget(null)
   }
 
@@ -343,6 +377,37 @@ export default function StudioPage() {
       return next
     })
 
+  // Version Explorer: duplicate clones a done generation's image/analysis
+  // into a brand-new entry (fresh id, no favorite/name carried over) — no
+  // new endpoint, this rides the same whole-project PUT every other edit
+  // here already uses.
+  const handleDuplicateVersion = (entry) => {
+    const copy = {
+      ...entry,
+      id: nanoid(),
+      createdAt: new Date().toISOString(),
+      favorite: false,
+      favoriteName: null,
+    }
+    updateProject(project.id, (p) => ({ ...p, generations: [copy, ...p.generations] }))
+    showToast(t.versionDuplicated)
+  }
+
+  // Confirmed via ConfirmDialog (deleteVersionTarget) below — removes the
+  // entry from the generations array; the backend already replaces the whole
+  // array on save, so no delete-single-generation endpoint is needed.
+  const confirmDeleteVersion = () => {
+    if (!deleteVersionTarget) return
+    updateProject(project.id, (p) => ({
+      ...p,
+      generations: p.generations.filter((g) => g.id !== deleteVersionTarget.id),
+    }))
+    if (analyzeTargetId === deleteVersionTarget.id) setAnalyzeTargetId(null)
+    if (referenceEntry?.id === deleteVersionTarget.id) setReferenceEntry(null)
+    showToast(t.versionDeleted)
+    setDeleteVersionTarget(null)
+  }
+
   // Sorted oldest-first regardless of click order, so the slider always reads
   // left = before (older), right = after (newer) — not "first clicked".
   const compareEntries = compareIds
@@ -350,16 +415,6 @@ export default function StudioPage() {
     .filter(Boolean)
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
 
-  const favoriteEntries = generations.filter((g) => g.favorite)
-  const favoriteQueryLower = favoriteQuery.trim().toLowerCase()
-  const filteredFavorites = favoriteQueryLower
-    ? favoriteEntries.filter(
-        (g) =>
-          (g.favoriteName ?? '').toLowerCase().includes(favoriteQueryLower) ||
-          (g.modificationNote ?? '').toLowerCase().includes(favoriteQueryLower) ||
-          g.prompt.toLowerCase().includes(favoriteQueryLower),
-      )
-    : favoriteEntries
 
   return (
     <AppShell projectName={project.name}>
@@ -367,350 +422,132 @@ export default function StudioPage() {
         {announcement}
       </div>
       <div className="flex h-[calc(100vh-56px)]">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <main ref={mainRef} className="flex-1 overflow-y-auto p-6">
-            <div className="mx-auto mb-6 flex max-w-[720px] items-center justify-between gap-2">
-              <div className="min-w-0">
-                <h1 className="truncate font-display text-xl font-semibold text-ink">{project.name}</h1>
-                <p className="text-xs text-ink-muted">
-                  {generations.length} {t.design.toLowerCase()} ·{' '}
-                  {new Date(project.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRightPanelOpen(true)}
-                aria-label={t.tabInformasi}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-clay/40 hover:text-clay-deep lg:hidden"
-              >
-                <StepIcon name="checklist" className="h-3.5 w-3.5" />
-                {t.tabInformasi}
-              </button>
-            </div>
-            {timeline.length === 0 ? (
-              <div className="flex items-center justify-center py-10">
-                <EmptyState illustration="canvas" title={t.emptyTitle} body={t.emptyBody} />
-              </div>
-            ) : (
-              <div className="mx-auto max-w-[720px] space-y-4">
-                {timeline.map((item) =>
-                  item.kind === 'msg' ? (
-                    <PlanMessage key={item.id} message={item.data} onUseBrief={handleUseBrief} />
-                  ) : (
-                    <div
-                      key={item.id}
-                      ref={(el) => {
-                        if (el) entryRefs.current.set(item.id, el)
-                        else entryRefs.current.delete(item.id)
-                      }}
-                    >
-                      <GenerationEntry
-                        entry={item.data}
-                        index={generations.findIndex((g) => g.id === item.id)}
-                        total={generations.length}
-                        onOpenLightbox={(g) => setLightboxId(g.id)}
-                        onAnalyze={(g) => focusAnalysis(g.id)}
-                        onExport={(g) => setExportTargetId(g.id)}
-                        onRetry={handleRetry}
-                        onCancel={handleCancel}
-                        onUseAsReference={handleUseAsReference}
-                        onReply={handleReply}
-                        isReference={referenceEntry?.id === item.id}
-                        isLatestDone={item.id === latestDoneId}
-                        isBeingAnalyzed={rightTab === 'informasi' && analyzeTargetId === item.id}
-                        flashed={flashId === item.id}
-                        focused={rightTab === 'informasi' && analyzeTargetId === item.id && flashId !== item.id}
-                        onToggleFavorite={handleToggleFavorite}
-                        onToggleCompare={handleToggleCompare}
-                        isCompareSelected={compareIds.includes(item.id)}
-                      />
-                    </div>
-                  ),
-                )}
-              </div>
-            )}
-          </main>
-
-          {compareIds.length > 0 && !compareOpen && (
-            <div className="shrink-0 border-t border-paper-line bg-clay-soft px-3 py-2">
-              <div className="mx-auto flex max-w-[720px] items-center justify-between gap-2 text-sm text-clay-deep">
-                <span>
-                  {tc.bar(compareIds.length)}
-                  {compareIds.length === 1 && <span className="ml-1 text-clay-deep/70">· {tc.barHint}</span>}
-                </span>
-                <div className="flex gap-2">
-                  {compareIds.length === 2 && (
-                    <button type="button" onClick={() => setCompareOpen(true)} className="btn-primary !px-3 !py-1.5 text-xs">
-                      {tc.open}
-                    </button>
-                  )}
-                  <button type="button" onClick={() => setCompareIds([])} className="btn-ghost !px-3 !py-1.5 text-xs">
-                    {tc.clear}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="shrink-0 px-4 pb-4 pt-2">
+        <ProjectRail
+          project={project}
+          onEditSetup={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
+          navSection={navSection}
+          onNavSectionChange={setNavSection}
+          versionExplorerProps={{
+            generations,
+            selectedVersionId: analyzeTargetId,
+            onSelect: (id) => {
+              setAnalyzeTargetId(id)
+              setSelectedObjectId(null)
+            },
+            versionOf,
+            onRename: (entry) => setBookmarkTarget(entry),
+            onDuplicate: handleDuplicateVersion,
+            onDelete: (entry) => setDeleteVersionTarget(entry),
+            onToggleFavorite: handleToggleFavorite,
+            onToggleCompare: handleToggleCompare,
+            compareIds,
+            onNewVersion: () => composerRef.current?.focus(),
+          }}
+        />
+        {navSection === 'checklist' ? (
+          <div className="min-h-0 flex-1 overflow-y-auto p-6">
             <div className="mx-auto max-w-[720px]">
-              <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-paper-line bg-paper p-2 shadow-lg shadow-ink/5">
-                {/* Mode switch: Rencana (advisor, gratis) vs Buat gambar (generate),
-                    folded into the composer as a dropdown. Default = Buat gambar so
-                    the original one-shot flow is unchanged. */}
-                <div className="relative shrink-0" ref={modeMenuRef}>
-                  <button
-                    type="button"
-                    onClick={() => setModeMenuOpen((o) => !o)}
-                    aria-haspopup="menu"
-                    aria-expanded={modeMenuOpen}
-                    className="flex items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft px-3 py-2 text-xs font-medium text-ink-soft transition-colors hover:border-clay/40 hover:text-clay-deep"
-                  >
-                    <StepIcon name={mode === 'plan' ? 'spark' : 'image'} className="h-3.5 w-3.5" />
-                    {mode === 'plan' ? t.modePlan : t.modeGenerate}
-                    <StepIcon name="chevronDown" className="h-3 w-3" />
-                  </button>
-                  {modeMenuOpen && (
-                    <div
-                      role="menu"
-                      className="absolute bottom-full left-0 z-20 mb-2 w-60 rounded-lg border border-paper-line bg-paper py-1 shadow-lg"
-                    >
-                      {[
-                        { value: 'generate', icon: 'image', label: t.modeGenerate, hint: t.modeGenerateHint },
-                        { value: 'plan', icon: 'spark', label: t.modePlan, hint: t.modePlanHint },
-                      ].map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            setMode(opt.value)
-                            setModeMenuOpen(false)
-                          }}
-                          className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-paper-soft"
-                        >
-                          <StepIcon name={opt.icon} className="mt-0.5 h-4 w-4 shrink-0 text-clay-deep" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-medium text-ink">{opt.label}</span>
-                            <span className="block text-xs text-ink-muted">{opt.hint}</span>
-                          </span>
-                          {mode === opt.value && <StepIcon name="check" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-clay" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {mode === 'generate' && (
-                  <>
-                    <ReferenceImageInput value={composerImage} onChange={setComposerImage} compact />
-                    {referenceEntry && (
-                      <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-paper-line bg-paper-soft py-1 pl-1 pr-2">
-                        <img
-                          src={referenceEntry.imageId}
-                          alt=""
-                          className="h-7 w-7 rounded-full object-cover"
-                        />
-                        <span className="text-xs text-ink-soft">{t.refChip} {versionOf(referenceEntry)}</span>
-                        <button
-                          type="button"
-                          onClick={() => setReferenceEntry(null)}
-                          className="text-ink-muted hover:text-ink"
-                          aria-label={t.removeRef}
-                        >
-                          <StepIcon name="close" className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-                <textarea
-                  ref={composerRef}
-                  rows={1}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value.slice(0, 300))}
-                  onKeyDown={(e) => {
-                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                      mode === 'plan' ? handlePlanSend() : handleGenerate()
-                    }
-                  }}
-                  placeholder={mode === 'plan' ? t.planPlaceholder : t.composerPlaceholder}
-                  className="min-w-[140px] max-h-24 flex-1 resize-none bg-transparent px-2 py-2 text-sm focus:outline-none"
-                />
-                {(() => {
-                  const busy = mode === 'plan' ? isPlanPending : isPending
-                  const label = mode === 'plan' ? t.planSend : isPending ? t.generating : t.generate
-                  return (
-                    <button
-                      type="button"
-                      onClick={mode === 'plan' ? handlePlanSend : handleGenerate}
-                      disabled={busy || !note.trim()}
-                      aria-label={label}
-                      title={label}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-clay text-white transition-colors hover:bg-clay-deep disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {busy ? (
-                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
-                          <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                        </svg>
-                      ) : (
-                        <StepIcon name="arrow" className="h-4 w-4" />
-                      )}
-                    </button>
-                  )
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {rightPanelOpen && (
-          <div className="fixed inset-0 z-40 bg-ink/30 lg:hidden" onClick={() => setRightPanelOpen(false)} aria-hidden="true" />
-        )}
-        <aside
-          inert={mobile && !rightPanelOpen ? '' : undefined}
-          className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm shrink-0 flex-col border-l border-paper-line bg-paper-soft transition-transform duration-200 lg:static lg:z-auto lg:w-96 lg:max-w-none lg:flex lg:translate-x-0 ${
-            rightPanelOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-        >
-          <div className="flex items-center gap-2 p-3">
-            <div className="min-w-0 flex-1">
-              <SegmentedControl
-                options={[
-                  { value: 'informasi', label: t.tabInformasi },
-                  { value: 'history', label: t.tabHistory },
-                  { value: 'favorit', label: t.tabFavorite },
-                ]}
-                value={rightTab}
-                onChange={setRightTab}
+              <h1 className="mb-4 font-display text-lg font-semibold text-ink">{t.navChecklist}</h1>
+              <AnalyzePanel
+                projectId={project.id}
+                generation={analyzeTarget}
+                versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
+                onExport={(gen) => {
+                  setExportedOnce(true)
+                  setExportTargetId(gen.id)
+                }}
               />
             </div>
-            <button
-              type="button"
-              onClick={() => setRightPanelOpen(false)}
-              aria-label={t.lightboxClose}
-              className="shrink-0 rounded-md p-1.5 text-ink-muted hover:bg-paper hover:text-ink lg:hidden"
-            >
-              <StepIcon name="close" className="h-4 w-4" />
-            </button>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
-            {rightTab === 'informasi' ? (
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted">
-                    {t.informasiDetailHeading}
-                  </p>
-                  <dl className="space-y-3 rounded-xl2 border border-paper-line bg-paper p-4 text-sm">
-                    {[
-                      [t.setupTheme, project.setup.theme],
-                      [t.setupStyle, project.setup.style || '—'],
-                      [t.setupVenue, project.setup.venueType],
-                      [t.setupSize, project.setup.venueSize],
-                      [t.setupGuests, project.setup.guestCapacity],
-                      [t.setupBudget, project.setup.budgetTier],
-                      [t.setupPalette, project.setup.colorPalette?.join(', ') || '—'],
-                    ].map(([label, value]) => (
-                      <div key={label} className="flex items-start justify-between gap-3">
-                        <dt className="shrink-0 text-xs text-ink-muted">{label}</dt>
-                        <dd className="text-right font-medium text-ink-soft">{value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
-                    className="btn-ghost w-full !py-2 text-sm"
-                  >
-                    <StepIcon name="pencil" className="h-3.5 w-3.5" />
-                    {t.editSetup}
-                  </button>
-                </div>
+        ) : (
+        <DesignCanvas
+          project={project}
+          selectedVersion={analyzeTarget}
+          versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
+          generations={generations}
+          onSelectVersion={(id) => {
+            setAnalyzeTargetId(id)
+            setSelectedObjectId(null)
+          }}
+          versionOf={versionOf}
+          selectedObjectId={selectedObjectId}
+          onSelectObject={setSelectedObjectId}
+          onFullscreen={() => analyzeTarget && setLightboxId(analyzeTarget.id)}
+          onShare={handleShare}
+          onExportClick={() => {
+            if (!analyzeTarget) return
+            setExportedOnce(true)
+            setExportTargetId(analyzeTarget.id)
+          }}
+          onRegenerate={() => analyzeTarget && handleRetry(analyzeTarget)}
+          onToggleFavorite={handleToggleFavorite}
+          exported={exportedOnce}
+          analyzing={Boolean(analyzeTarget) && !analyzeTarget.analysis}
+          composerProps={{
+            mode,
+            onModeChange: setMode,
+            modeMenuOpen,
+            onModeMenuOpenChange: setModeMenuOpen,
+            modeMenuRef,
+            composerImage,
+            onComposerImageChange: setComposerImage,
+            referenceEntry,
+            onRemoveReference: () => setReferenceEntry(null),
+            referenceVersionNumber: referenceEntry ? versionOf(referenceEntry) : 0,
+            note,
+            onNoteChange: setNote,
+            composerRef,
+            isPending,
+            isPlanPending,
+            onGenerate: handleComposerGenerate,
+            onPlanSend: handlePlanSend,
+            placeholder:
+              selectedObjectId && mode === 'generate'
+                ? t.copilotPlaceholderObject(
+                    analyzeTarget?.analysis?.items.find((i) => i.id === selectedObjectId)?.name ?? '',
+                  )
+                : mode === 'generate'
+                  ? t.copilotPlaceholderWhole
+                  : undefined,
+          }}
+          conversationProps={{
+            timeline,
+            generations,
+            allErrored,
+            entryRefs,
+            onOpenLightbox: (g) => setLightboxId(g.id),
+            onAnalyze: (g) => focusAnalysis(g.id),
+            onExport: (g) => setExportTargetId(g.id),
+            onRetry: handleRetry,
+            onCancel: handleCancel,
+            onUseAsReference: handleUseAsReference,
+            onReply: handleReply,
+            onUseBrief: handleUseBrief,
+            referenceEntry,
+            latestDoneId,
+            analyzeTargetId,
+            isAnalysisFocused: true,
+            flashId,
+            onToggleFavorite: handleToggleFavorite,
+            onToggleCompare: handleToggleCompare,
+            compareIds,
+          }}
+        />
+        )}
 
-                <div ref={analysisSectionRef} className="space-y-3 border-t border-paper-line pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted">
-                    {t.informasiAnalysisHeading}
-                  </p>
-                  <AnalyzePanel
-                    projectId={project.id}
-                    generation={analyzeTarget}
-                    versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
-                    onJumpToFeed={() => analyzeTarget && scrollToEntry(analyzeTarget.id)}
-                    onExport={(gen) => {
-                      setExportTargetId(gen.id)
-                    }}
-                  />
-                </div>
-              </div>
-            ) : rightTab === 'history' ? (
-              <div className="space-y-1.5">
-                {generations.length === 0 && <p className="py-4 text-center text-sm text-ink-muted">{t.historyEmpty}</p>}
-                {generations.map((g, i) => (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => scrollToEntry(g.id)}
-                    className="flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-paper"
-                  >
-                    {g.imageId ? (
-                      <img src={g.imageId} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-                    ) : (
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-paper-line">
-                        <StepIcon name="image" className="h-4 w-4 text-ink-muted" />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1 text-sm text-ink">
-                        {t.design} {generations.length - i}
-                        {g.favorite && <StepIcon name="star" className="h-3 w-3 fill-clay text-clay" />}
-                      </p>
-                      <p className="truncate text-xs text-ink-muted">
-                        {new Date(g.createdAt).toLocaleTimeString('id-ID')}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {favoriteEntries.length === 0 ? (
-                  <EmptyState illustration="canvas" compact title={t.favoritesEmptyTitle} body={t.favoritesEmptyBody} />
-                ) : (
-                  <>
-                    <div className="relative">
-                      <StepIcon
-                        name="search"
-                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted"
-                      />
-                      <input
-                        type="text"
-                        value={favoriteQuery}
-                        onChange={(e) => setFavoriteQuery(e.target.value)}
-                        placeholder={t.favoritesSearchPlaceholder}
-                        className="h-9 w-full rounded-lg border border-paper-line bg-paper pl-9 pr-3 text-sm focus:border-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay/40"
-                      />
-                    </div>
-                    {filteredFavorites.length === 0 ? (
-                      <EmptyState illustration="canvas" compact title={t.favoritesNoMatchTitle} body={t.favoritesNoMatchBody} />
-                    ) : (
-                      filteredFavorites.map((g) => (
-                        <FavoriteCard
-                          key={g.id}
-                          entry={g}
-                          versionNumber={versionOf(g)}
-                          projectId={project.id}
-                          onJumpToFeed={() => scrollToEntry(g.id)}
-                          onExport={(gen) => setExportTargetId(gen.id)}
-                          onRename={() => setBookmarkTarget(g)}
-                        />
-                      ))
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </aside>
+        <Inspector
+          project={project}
+          selectedVersion={analyzeTarget}
+          versionNumber={analyzeTarget ? versionOf(analyzeTarget) : 0}
+          selectedObjectId={selectedObjectId}
+          onSelectObject={setSelectedObjectId}
+          onEditSetup={() => navigate('/projects/new', { state: { editProjectId: project.id } })}
+          onRenameVersion={(entry) => setBookmarkTarget(entry)}
+          onExportVersion={(entry) => {
+            setExportedOnce(true)
+            setExportTargetId(entry.id)
+          }}
+        />
       </div>
 
       {lightbox && (
@@ -874,9 +711,18 @@ export default function StudioPage() {
         confirmLabel={t.confirmGenerateCta}
       />
 
+      <ConfirmDialog
+        open={Boolean(deleteVersionTarget)}
+        onClose={() => setDeleteVersionTarget(null)}
+        onConfirm={confirmDeleteVersion}
+        title={t.deleteVersionConfirmTitle}
+        body={t.deleteVersionConfirmBody}
+        confirmLabel={t.deleteVersionCta}
+      />
+
       <BookmarkNameDialog
         open={Boolean(bookmarkTarget)}
-        title={bookmarkTarget?.favorite ? t.bookmarkRenameTitle : t.bookmarkDialogTitle}
+        title={bookmarkTarget?.favorite ? t.bookmarkRenameTitle : t.renameVersionTitle}
         initialName={bookmarkTarget?.favoriteName ?? ''}
         onClose={() => setBookmarkTarget(null)}
         onSave={saveBookmarkName}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { content } from '../../content.js'
 import { StepIcon } from '../icons.jsx'
@@ -20,9 +20,24 @@ export default function AppShell({ projectName, children }) {
   const section = SECTION_LABELS.find((s) => pathname.startsWith(s.prefix))
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // The Design Workspace needs maximum horizontal space, so the sidebar
+  // auto-collapses to icon-only there. `manualOverride` lets the user flip
+  // that for the current route; it resets to the route's default (collapsed
+  // in Studio, expanded elsewhere) on every navigation, per spec — the
+  // behavior is scoped to where you are, not a sticky global preference.
+  const autoCollapse = pathname.startsWith('/studio/')
+  const [manualOverride, setManualOverride] = useState(null)
+  useEffect(() => setManualOverride(null), [pathname])
+  const collapsed = manualOverride ?? autoCollapse
+
   return (
     <div className="flex h-screen bg-paper-line">
-      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <AppSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapse={() => setManualOverride(!collapsed)}
+      />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-xl rounded-bl-xl bg-paper shadow-sm shadow-ink/5">
         <header className="sticky top-0 z-30 h-14 shrink-0 border-b border-paper-line bg-paper">
           <div className="flex h-full items-center gap-2 px-3 sm:px-6">

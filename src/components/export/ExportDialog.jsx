@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Dialog from '../ui/Dialog.jsx'
 import { StepIcon } from '../icons.jsx'
 import { downloadPng, buildBriefPdf } from './buildBriefPdf.js'
+import { shareVersion } from './shareLink.js'
 import { useToast } from '../ui/Toast.jsx'
 import { content } from '../../content.js'
 
@@ -22,15 +23,8 @@ export default function ExportDialog({ project, generation, versionNumber, onClo
     setError(null)
     try {
       if (choice === 'share') {
-        // Link berbagi (mock): lihat-saja, tanpa kontrol akses — siapa pun
-        // dengan URL bisa membuka /share/:projectId/:generationId.
-        const url = `${window.location.origin}/share/${project.id}/${generation.id}`
-        try {
-          await navigator.clipboard.writeText(url)
-          showToast(content.app.share.copied)
-        } catch {
-          window.prompt(content.app.share.copyFailed, url)
-        }
+        // No token = guessed/expired link is rejected by SharePage's gate.
+        await shareVersion(project, generation, showToast)
         onClose()
         return
       }

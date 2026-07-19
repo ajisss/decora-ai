@@ -22,17 +22,15 @@ function loadGoogleScript() {
 }
 
 // "Lanjutkan dengan Google" — lazily loads Google Identity Services only on
-// click. If VITE_GOOGLE_CLIENT_ID isn't configured, fails fast with an inline
-// error instead of attempting to load Google's script at all.
+// click. If VITE_GOOGLE_CLIENT_ID isn't configured, the button renders
+// disabled with a "soon" hint instead of offering a click that can only fail.
 export default function GoogleSignInButton({ label, disabled, onCredential, onError }) {
   const [loading, setLoading] = useState(false)
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
+  const unconfigured = !clientId
 
   const handleClick = async () => {
-    if (!clientId) {
-      onError('Google Sign-In belum dikonfigurasi.')
-      return
-    }
+    if (unconfigured) return
     setLoading(true)
     try {
       await loadGoogleScript()
@@ -59,11 +57,12 @@ export default function GoogleSignInButton({ label, disabled, onCredential, onEr
     <button
       type="button"
       onClick={handleClick}
-      disabled={disabled || loading}
-      className="btn-ghost w-full disabled:opacity-60"
+      disabled={disabled || loading || unconfigured}
+      title={unconfigured ? 'Google Sign-In segera hadir' : undefined}
+      className="btn-ghost w-full disabled:cursor-not-allowed disabled:opacity-60"
     >
       <GoogleMark />
-      {loading ? '…' : label}
+      {unconfigured ? 'Google (segera)' : loading ? '…' : label}
     </button>
   )
 }

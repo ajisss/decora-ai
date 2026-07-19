@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { StepIcon } from '../icons.jsx'
 import Skeleton from '../ui/Skeleton.jsx'
 import { useProjects } from '../../context/ProjectsContext.jsx'
+import useAnalysisMutations from '../studio/useAnalysisMutations.js'
 import { useToast } from '../ui/Toast.jsx'
 import EmptyState from '../ui/EmptyState.jsx'
 import ConfirmDialog from '../ui/ConfirmDialog.jsx'
@@ -11,7 +12,7 @@ import { content } from '../../content.js'
 
 const t = content.app.analyze
 
-const TAXONOMY_ORDER = [
+export const TAXONOMY_ORDER = [
   'Stage',
   'Backdrop',
   'Chairs',
@@ -30,12 +31,13 @@ const TAXONOMY_ORDER = [
 // analyzing is a main-journey step (uiuxcontext.md §7 Canvas → Analyze →
 // Export), not a peripheral action. One generation at a time.
 export default function AnalyzePanel({ projectId, generation, versionNumber, onJumpToFeed, onExport, hideImage = false }) {
-  const { runAnalysis, updateProject, runItemImage, cancelItemImage } = useProjects()
+  const { runAnalysis, runItemImage, cancelItemImage } = useProjects()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [confirmReanalyze, setConfirmReanalyze] = useState(false)
   const [zoomSrc, setZoomSrc] = useState(null)
+  const { editItem, toggleItem, removeManual, addManualItem } = useAnalysisMutations(projectId, generation?.id)
 
   if (!generation) {
     return (
@@ -57,37 +59,6 @@ export default function AnalyzePanel({ projectId, generation, versionNumber, onJ
     if (!result.ok) setError(t.error)
     else showToast(t.complete)
   }
-
-  const mutateItems = (updater) => {
-    updateProject(projectId, (p) => ({
-      ...p,
-      generations: p.generations.map((g) =>
-        g.id === generation.id ? { ...g, analysis: { ...g.analysis, items: updater(g.analysis.items) } } : g,
-      ),
-    }))
-  }
-
-  const toggleItem = (id) =>
-    mutateItems((items) => items.map((it) => (it.id === id ? { ...it, included: !it.included } : it)))
-
-  const editItem = (id, patch) => mutateItems((items) => items.map((it) => (it.id === id ? { ...it, ...patch } : it)))
-
-  const removeManual = (id) => mutateItems((items) => items.filter((it) => it.id !== id))
-
-  const addManualItem = (category) =>
-    mutateItems((items) => [
-      ...items,
-      {
-        id: `manual-${Math.random().toString(36).slice(2, 8)}`,
-        category,
-        name: 'Item baru',
-        description: '',
-        estimatedQuantity: null,
-        included: true,
-        note: '',
-        isManual: true,
-      },
-    ])
 
   const groups = analysis
     ? TAXONOMY_ORDER.map((cat) => ({ cat, items: analysis.items.filter((i) => i.category === cat) })).filter(
