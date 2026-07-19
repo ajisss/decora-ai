@@ -445,6 +445,9 @@ export const content = {
       zoomImage: 'Perbesar gambar',
       filmstripPrev: 'Versi sebelumnya',
       filmstripNext: 'Versi berikutnya',
+      filmstripCollapse: 'Ciutkan daftar versi',
+      filmstripExpand: 'Perluas daftar versi',
+      minimapReset: 'Kembali ke tampilan penuh',
       // AI Copilot: one-click actions that compose the prompt for the user.
       // `whole` retouches the entire design; `object` is scoped to one item.
       copilotChips: {
