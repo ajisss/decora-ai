@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { content } from '../../content.js'
 import { StepIcon } from '../icons.jsx'
@@ -20,9 +20,20 @@ export default function AppShell({ projectName, children }) {
   const section = SECTION_LABELS.find((s) => pathname.startsWith(s.prefix))
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // Collapsible on any page, expanded by default. (The Design Workspace has
+  // its own shell — WorkspaceShell — and renders the sidebar with
+  // `forceCollapsed`, so there's no route special-casing here.)
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => setCollapsed(false), [pathname])
+
   return (
     <div className="flex h-screen bg-paper-line">
-      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <AppSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapse={() => setCollapsed((c) => !c)}
+      />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-xl rounded-bl-xl bg-paper shadow-sm shadow-ink/5">
         <header className="sticky top-0 z-30 h-14 shrink-0 border-b border-paper-line bg-paper">
           <div className="flex h-full items-center gap-2 px-3 sm:px-6">

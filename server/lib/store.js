@@ -1,11 +1,17 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { put } from '@vercel/blob'
-import { sql } from './db.js'
+import { sql, USE_LOCAL_DB } from './db.js'
+import * as local from './localStore.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Still used by lib/mockAi.js for its on-disk Wikimedia cache (dev-only concern).
 export const DATA_DIR = path.join(__dirname, '..', 'data')
+
+// When no cloud creds are set, every export routes to the file-based local
+// store. The cloud (Neon/Vercel Blob) implementation below stays the source
+// of truth for team/Vercel deploys — we never edit it from the local branch.
+const L = USE_LOCAL_DB ? local : null
 
 // Rows come back with jsonb columns already parsed and timestamptz columns as
 // Date objects — normalize dates to ISO strings so callers (e.g. generate.js's
@@ -20,6 +26,8 @@ function toGeneration(row) {
     imageId: row.image_id,
     error: row.error,
     analysis: row.analysis,
+    favorite: row.favorite ?? false,
+    favoriteName: row.favorite_name ?? null,
   }
 }
 
@@ -36,7 +44,7 @@ function toProject(row, generations) {
   }
 }
 
-export async function listProjects(userId) {
+async function cloudListProjects(userId) {
   const projectRows = await sql`SELECT * FROM projects WHERE user_id = ${userId} ORDER BY updated_at DESC`
   if (projectRows.length === 0) return []
   const ids = projectRows.map((row) => row.id)
@@ -52,7 +60,7 @@ export async function listProjects(userId) {
 
 // Scoped to `userId` so a project can't be fetched by guessing/knowing its
 // id alone — a missing owner match looks identical to a missing project.
-export async function getProject(id, userId) {
+async function cloudGetProject(id, userId) {
   const projectRows = await sql`SELECT * FROM projects WHERE id = ${id} AND user_id = ${userId}`
   if (projectRows.length === 0) return null
   const genRows = await sql`SELECT * FROM generations WHERE project_id = ${id} ORDER BY created_at DESC`
@@ -65,10 +73,19 @@ export async function getProject(id, userId) {
 // yet reinserted. The ON CONFLICT's WHERE guards against a (practically
 // impossible, ids are nanoid) cross-user id collision silently overwriting
 // someone else's project instead of erroring.
-export async function saveProject(project, userId) {
+async function cloudSaveProject(project, userId) {
   const generations = project.generations ?? []
   const setup = JSON.stringify(project.setup ?? {})
   const messages = JSON.stringify(project.messages ?? [])
+
+  // The ON CONFLICT guard below no-ops for a project owned by someone else,
+  // but the DELETE/INSERT of generations that follows it is unconditional —
+  // so without this check a foreign PUT still wipes the owner's whole history
+  // and injects its own rows. Fail closed before touching anything.
+  const owner = await sql`SELECT user_id FROM projects WHERE id = ${project.id}`
+  if (owner.length > 0 && owner[0].user_id !== userId) {
+    throw Object.assign(new Error('Project belongs to another user'), { code: 'forbidden' })
+  }
 
   const queries = [
     sql`
@@ -86,8 +103,8 @@ export async function saveProject(project, userId) {
     ...generations.map((g) => {
       const analysis = g.analysis ? JSON.stringify(g.analysis) : null
       return sql`
-        INSERT INTO generations (id, project_id, created_at, prompt, modification_note, status, image_id, error, analysis)
-        VALUES (${g.id}, ${project.id}, ${g.createdAt}, ${g.prompt ?? null}, ${g.modificationNote ?? null}, ${g.status}, ${g.imageId ?? null}, ${g.error ?? null}, ${analysis}::jsonb)
+        INSERT INTO generations (id, project_id, created_at, prompt, modification_note, status, image_id, error, analysis, favorite, favorite_name)
+        VALUES (${g.id}, ${project.id}, ${g.createdAt}, ${g.prompt ?? null}, ${g.modificationNote ?? null}, ${g.status}, ${g.imageId ?? null}, ${g.error ?? null}, ${analysis}::jsonb, ${g.favorite ?? false}, ${g.favoriteName ?? null})
       `
     }),
   ]
@@ -95,13 +112,13 @@ export async function saveProject(project, userId) {
   return project
 }
 
-export async function deleteProject(id, userId) {
+async function cloudDeleteProject(id, userId) {
   await sql`DELETE FROM projects WHERE id = ${id} AND user_id = ${userId}`
 }
 
 // imageId / referenceImageId are now full Vercel Blob URLs — opaque to callers,
 // served directly by Blob's CDN (no more Express static proxy).
-export async function saveImage(id, buffer) {
+async function cloudSaveImage(id, buffer) {
   const blob = await put(`images/${id}.png`, buffer, {
     access: 'public',
     contentType: 'image/png',
@@ -110,7 +127,7 @@ export async function saveImage(id, buffer) {
   return blob.url
 }
 
-export async function readImage(imageUrl) {
+async function cloudReadImage(imageUrl) {
   const res = await fetch(imageUrl)
   if (!res.ok) throw new Error(`image fetch failed (${res.status})`)
   return Buffer.from(await res.arrayBuffer())
@@ -118,7 +135,7 @@ export async function readImage(imageUrl) {
 
 const EXT_MIME = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }
 
-export async function saveUpload(id, buffer, ext) {
+async function cloudSaveUpload(id, buffer, ext) {
   const blob = await put(`uploads/${id}.${ext}`, buffer, {
     access: 'public',
     contentType: EXT_MIME[ext] ?? 'application/octet-stream',
@@ -127,10 +144,19 @@ export async function saveUpload(id, buffer, ext) {
   return blob.url
 }
 
-export async function readUpload(uploadUrl) {
+async function cloudReadUpload(uploadUrl) {
   const res = await fetch(uploadUrl)
   if (!res.ok) throw new Error(`upload fetch failed (${res.status})`)
   const buffer = Buffer.from(await res.arrayBuffer())
   const ext = uploadUrl.split('.').pop().split('?')[0]
   return { buffer, mime: EXT_MIME[ext] ?? 'image/png' }
 }
+
+export const listProjects = L ? L.listProjects : cloudListProjects
+export const getProject = L ? L.getProject : cloudGetProject
+export const saveProject = L ? L.saveProject : cloudSaveProject
+export const deleteProject = L ? L.deleteProject : cloudDeleteProject
+export const saveImage = L ? L.saveImage : cloudSaveImage
+export const readImage = L ? L.readImage : cloudReadImage
+export const saveUpload = L ? L.saveUpload : cloudSaveUpload
+export const readUpload = L ? L.readUpload : cloudReadUpload

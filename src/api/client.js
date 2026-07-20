@@ -44,7 +44,14 @@ export const api = {
   analyze: ({ projectId, generationId }) =>
     request('/analyze', { method: 'POST', body: JSON.stringify({ projectId, generationId }) }),
 
-  upload: (dataUrl) => request('/uploads', { method: 'POST', body: JSON.stringify({ dataUrl }) }),
+  // Share: owner mints a signed, expiring link (auth); public read is
+  // token-gated (no auth) — routes/share.js verifies the token server-side.
+  share: {
+    create: ({ projectId, generationId }) =>
+      request(`/share/${projectId}/${generationId}`, { method: 'POST' }),
+    get: ({ projectId, generationId, token }) =>
+      request(`/share/${projectId}/${generationId}?t=${encodeURIComponent(token)}`),
+  },
 
   previewPrompt: (setup) => request('/prompt/preview', { method: 'POST', body: JSON.stringify({ setup }) }),
 
@@ -56,6 +63,15 @@ export const api = {
 
   cancelItemImage: ({ projectId, generationId, itemId }) =>
     request('/item-image/cancel', { method: 'POST', body: JSON.stringify({ projectId, generationId, itemId }) }),
+
+  itemInsight: ({ projectId, generationId, itemId }) =>
+    request('/item-insight', { method: 'POST', body: JSON.stringify({ projectId, generationId, itemId }) }),
+
+  // Composer reference image: POSTs the data URL and gets back a stored id.
+  // StudioPage has always called this; it just never existed here, so every
+  // upload threw TypeError into a catch that silently generated without the
+  // reference — the "+ Referensi" attachment did nothing.
+  upload: (dataUrl) => request('/uploads', { method: 'POST', body: JSON.stringify({ dataUrl }) }),
 
   auth: {
     register: ({ name, email, password }) =>

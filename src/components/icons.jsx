@@ -192,6 +192,50 @@ export function StepIcon({ name, className = 'h-6 w-6' }) {
       </>
     ),
     menu: <path d="M4 6h16M4 12h16M4 18h16" />,
+    hand: (
+      <>
+        <path d="M8 13V6a1.5 1.5 0 0 1 3 0v6" />
+        <path d="M11 12V4.5a1.5 1.5 0 0 1 3 0V12" />
+        <path d="M14 12.5V6a1.5 1.5 0 0 1 3 0v9" />
+        <path d="M8 12.5l-1.8-1.8a1.6 1.6 0 0 0-2.3 2.3L7 16a7 7 0 0 0 7 7h1a7 7 0 0 0 7-7v-3.5a1.5 1.5 0 0 0-3 0" />
+      </>
+    ),
+    zoomTool: (
+      <>
+        <circle cx="10.5" cy="10.5" r="6.5" />
+        <path d="m20 20-4.3-4.3" />
+        <path d="M8 10.5h5M10.5 8v5" />
+      </>
+    ),
+    zoomOut: (
+      <>
+        <circle cx="10.5" cy="10.5" r="6.5" />
+        <path d="m20 20-4.3-4.3" />
+        <path d="M8 10.5h5" />
+      </>
+    ),
+    frame: (
+      <>
+        <path d="M4 8V4h4" />
+        <path d="M16 4h4v4" />
+        <path d="M20 16v4h-4" />
+        <path d="M8 20H4v-4" />
+      </>
+    ),
+    layersToggle: (
+      <>
+        <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+        <path d="m3 13 9 5 9-5" />
+      </>
+    ),
+    fullscreen: (
+      <>
+        <path d="M4 9V5a1 1 0 0 1 1-1h4" />
+        <path d="M20 9V5a1 1 0 0 0-1-1h-4" />
+        <path d="M4 15v4a1 1 0 0 0 1 1h4" />
+        <path d="M20 15v4a1 1 0 0 1-1 1h-4" />
+      </>
+    ),
   }
   return (
     <svg {...base} className={className} aria-hidden="true">

@@ -10,6 +10,8 @@ import analyzeRouter from './routes/analyze.js'
 import uploadsRouter from './routes/uploads.js'
 import promptRouter from './routes/prompt.js'
 import itemImageRouter from './routes/itemImage.js'
+import itemInsightRouter from './routes/itemInsight.js'
+import shareRouter from './routes/share.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -25,6 +27,8 @@ app.use('/api/analyze', analyzeRouter)
 app.use('/api/uploads', uploadsRouter)
 app.use('/api/prompt', promptRouter)
 app.use('/api/item-image', itemImageRouter)
+app.use('/api/item-insight', itemInsightRouter)
+app.use('/api/share', shareRouter)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 

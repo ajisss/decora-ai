@@ -35,7 +35,7 @@ async function runItemImageInBackground(projectId, userId, generationId, itemId,
   const latest = await getProject(projectId, userId)
   if (!latest) return
   const generation = latest.generations.find((g) => g.id === generationId)
-  const item = generation?.analysis?.items.find((i) => i.id === itemId)
+  const item = generation?.analysis?.items?.find((i) => i.id === itemId)
   if (!item) return
   if (item.itemImage?.status === 'cancelled') return // user cancelled while this was in flight
   item.itemImage = { status, imageId, prompt, error }
@@ -68,7 +68,12 @@ router.post('/', async (req, res) => {
 
   res.json({ item })
 
-  waitUntil(runItemImageInBackground(projectId, req.user.id, generationId, itemId, prompt, item.category))
+  // Same rationale as generate.js: an unhandled rejection here is fatal.
+  waitUntil(
+    runItemImageInBackground(projectId, req.user.id, generationId, itemId, prompt, item.category).catch((err) =>
+      console.error('[item-image] background job failed:', err),
+    ),
+  )
 })
 
 // Client-visible cancel — see server/routes/generate.js's /cancel for the same rationale.
@@ -78,7 +83,7 @@ router.post('/cancel', async (req, res) => {
   if (!project) return res.status(404).json({ error: { message: 'Project not found', code: 'not_found' } })
 
   const generation = project.generations.find((g) => g.id === generationId)
-  const item = generation?.analysis?.items.find((i) => i.id === itemId)
+  const item = generation?.analysis?.items?.find((i) => i.id === itemId)
   if (!item) return res.status(404).json({ error: { message: 'Item not found', code: 'not_found' } })
   if (item.itemImage?.status !== 'pending') {
     return res.status(400).json({ error: { message: 'Item image is not in progress', code: 'bad_request' } })

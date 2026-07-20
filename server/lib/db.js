@@ -1,8 +1,15 @@
 import { neon } from '@neondatabase/serverless'
 
-export const sql = neon(process.env.DATABASE_URL)
+// Local fallback (no cloud creds): when DATABASE_URL is unset we skip Neon
+// entirely and the store layer falls back to file-based JSON (server/data/*).
+// The cloud path stays untouched for team/Vercel deployments.
+export const USE_LOCAL_DB = !process.env.DATABASE_URL
+
+export const sql = USE_LOCAL_DB ? null : neon(process.env.DATABASE_URL)
 
 export async function migrate() {
+  // No-op locally — the local store creates its own JSON files on first write.
+  if (USE_LOCAL_DB) return
   await sql`
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
@@ -42,13 +49,11 @@ export async function migrate() {
     )
   `
 
-  // `projects` predates auth — this table already existed with no owner
-  // column, so ADD COLUMN IF NOT EXISTS instead of folding it into the
-  // CREATE TABLE above (which only runs for a brand-new table).
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(id) ON DELETE CASCADE`
   await sql`CREATE INDEX IF NOT EXISTS projects_user_id_idx ON projects (user_id)`
-  // Plan mode (routes/plan.js) predates this table's normalization too —
-  // it wrote project.messages, which store.js silently dropped since it
-  // had no column to land in.
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS messages JSONB NOT NULL DEFAULT '[]'::jsonb`
+  // Favorites were only ever persisted by the local store — on a Neon deploy
+  // every save round-trip silently erased them.
+  await sql`ALTER TABLE generations ADD COLUMN IF NOT EXISTS favorite BOOLEAN NOT NULL DEFAULT false`
+  await sql`ALTER TABLE generations ADD COLUMN IF NOT EXISTS favorite_name TEXT`
 }

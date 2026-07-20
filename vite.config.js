@@ -15,11 +15,14 @@ export default defineConfig({
     strictPort: true,
     // Bind all interfaces so the dev server is reachable from other devices on
     // the LAN (e.g. a phone). The /api proxy still runs on this host, so
-    // proxied backend calls work for the remote device too. Images/uploads are
-    // served directly from Vercel Blob's CDN — no proxy needed for those.
+    // proxied backend calls work for the remote device too. In local mode
+    // (no Vercel Blob) images/uploads are served by the Express API, so those
+    // paths are proxied too; on Vercel they come from Blob's CDN instead.
     host: true,
     proxy: {
       '/api': `http://localhost:${apiPort}`,
+      '/images': `http://localhost:${apiPort}`,
+      '/uploads': `http://localhost:${apiPort}`,
     },
   },
 })

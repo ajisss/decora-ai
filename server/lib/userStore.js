@@ -1,5 +1,8 @@
 import { nanoid } from 'nanoid'
-import { sql } from './db.js'
+import { sql, USE_LOCAL_DB } from './db.js'
+import * as local from './localStore.js'
+
+const L = USE_LOCAL_DB ? local : null
 
 function toUser(row) {
   return {
@@ -14,7 +17,7 @@ function toUser(row) {
   }
 }
 
-export async function createUser({ name, email, passwordHash = null, googleId = null }) {
+async function cloudCreateUser({ name, email, passwordHash = null, googleId = null }) {
   const id = nanoid()
   const rows = await sql`
     INSERT INTO users (id, name, email, password_hash, google_id)
@@ -24,23 +27,23 @@ export async function createUser({ name, email, passwordHash = null, googleId = 
   return toUser(rows[0])
 }
 
-export async function findUserByEmail(email) {
+async function cloudFindUserByEmail(email) {
   const rows = await sql`SELECT * FROM users WHERE email = ${email.toLowerCase()}`
   return rows[0] ? toUser(rows[0]) : null
 }
 
-export async function findUserByGoogleId(googleId) {
+async function cloudFindUserByGoogleId(googleId) {
   const rows = await sql`SELECT * FROM users WHERE google_id = ${googleId}`
   return rows[0] ? toUser(rows[0]) : null
 }
 
-export async function findUserById(id) {
+async function cloudFindUserById(id) {
   const rows = await sql`SELECT * FROM users WHERE id = ${id}`
   return rows[0] ? toUser(rows[0]) : null
 }
 
-export async function updateUser(id, patch) {
-  const current = await findUserById(id)
+async function cloudUpdateUser(id, patch) {
+  const current = await cloudFindUserById(id)
   if (!current) return null
   const merged = { ...current, ...patch }
   const rows = await sql`
@@ -56,3 +59,9 @@ export async function updateUser(id, patch) {
   `
   return toUser(rows[0])
 }
+
+export const createUser = L ? L.createUser : cloudCreateUser
+export const findUserByEmail = L ? L.findUserByEmail : cloudFindUserByEmail
+export const findUserByGoogleId = L ? L.findUserByGoogleId : cloudFindUserByGoogleId
+export const findUserById = L ? L.findUserById : cloudFindUserById
+export const updateUser = L ? L.updateUser : cloudUpdateUser

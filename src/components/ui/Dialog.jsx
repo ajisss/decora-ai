@@ -1,16 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
+import useFocusTrap from '../../lib/useFocusTrap.js'
 
-// Centered modal dialog. Focus-trapped, closes on Escape/overlay click (ux-spec §3.3).
+// Centered modal dialog: focus-trapped, focus restored to the trigger on
+// close, background scroll locked, closes on Escape/overlay click (ux-spec §3.3).
 export default function Dialog({ open, onClose, title, children, footer, initialFocusRef }) {
   const dialogRef = useRef(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e) => e.key === 'Escape' && onClose?.()
-    window.addEventListener('keydown', onKey)
-    ;(initialFocusRef?.current ?? dialogRef.current)?.focus()
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose, initialFocusRef])
+  useFocusTrap({ open, onClose, containerRef: dialogRef, initialFocusRef })
 
   if (!open) return null
 

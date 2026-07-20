@@ -8,11 +8,17 @@ import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = Router()
 router.use(requireAuth)
-const DAILY_CAP = process.env.GENERATION_DAILY_CAP ? Number(process.env.GENERATION_DAILY_CAP) : 20
+// A non-numeric env value used to yield NaN, and `count >= NaN` is always
+// false — which silently disabled the cap entirely.
+const PARSED_CAP = Number(process.env.GENERATION_DAILY_CAP)
+const DAILY_CAP = Number.isFinite(PARSED_CAP) && PARSED_CAP > 0 ? PARSED_CAP : 20
 
 function todayCount(project) {
   const today = new Date().toISOString().slice(0, 10)
-  return project.generations.filter((g) => g.createdAt.slice(0, 10) === today).length
+  // createdAt arrives from the client via PUT /api/projects/:id; routes must
+  // not assume it is a string (it used to throw a 500 here).
+  return project.generations.filter((g) => typeof g.createdAt === 'string' && g.createdAt.slice(0, 10) === today)
+    .length
 }
 
 // Loads a reference image's bytes for image-to-image generation. Imaginer
@@ -118,7 +124,15 @@ router.post('/', async (req, res) => {
   // Respond immediately with the pending entry; the client polls for the result.
   res.json({ generation, project })
 
-  waitUntil(runGenerationInBackground(projectId, req.user.id, generation.id, effectivePrompt, reference))
+  // The write-back inside runGenerationInBackground happens outside its own
+  // try/catch, and waitUntil() does not attach a rejection handler — so a
+  // store failure there became an unhandled rejection, which under Node's
+  // default --unhandled-rejections=throw takes the whole API process down.
+  waitUntil(
+    runGenerationInBackground(projectId, req.user.id, generation.id, effectivePrompt, reference).catch((err) =>
+      console.error('[generate] background job failed:', err),
+    ),
+  )
 })
 
 // Client-visible cancel: the background job can't truly abort an in-flight
