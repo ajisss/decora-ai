@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { nanoid } from 'nanoid'
 import { waitUntil } from '@vercel/functions'
 import { getProject, saveProject, saveImage, readImage, readUpload } from '../lib/store.js'
-import { generateImage, editImage } from '../lib/imaginer.js'
+import { generateImage, editImage, imaginerErrorMessage } from '../lib/imaginer.js'
 import { mockGenerateImage, MOCK_AI_ENABLED } from '../lib/mockAi.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 
@@ -54,12 +54,7 @@ async function runGenerationInBackground(projectId, userId, generationId, effect
   } catch (err) {
     console.error('[generate] failed:', err.code, err.message)
     status = 'error'
-    error =
-      err.code === 'config'
-        ? 'Layanan gambar belum dikonfigurasi. Cek API key di server.'
-        : err.code === 'generation_failed'
-          ? 'Permintaan ini ditolak layanan gambar. Coba ubah kata-kata catatanmu.'
-          : 'Layanan desain tidak bisa dihubungi. Promptmu aman — coba lagi.'
+    error = imaginerErrorMessage(err)
   }
 
   // Re-read the project so this update doesn't clobber unrelated edits

@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import { waitUntil } from '@vercel/functions'
 import { getProject, saveProject, saveImage, readImage } from '../lib/store.js'
 import { generateItemImage, buildItemPrompt } from '../lib/itemImage.js'
+import { imaginerErrorMessage } from '../lib/imaginer.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = Router()
@@ -28,7 +29,7 @@ async function runItemImageInBackground(projectId, userId, generationId, itemId,
   } catch (err) {
     console.error('[item-image] failed:', err.code, err.message)
     status = 'error'
-    error = 'Gambar item ini belum bisa dibuat. Coba lagi, ya.'
+    error = imaginerErrorMessage(err)
   }
 
   // Re-read so this doesn't clobber unrelated edits made while generating.

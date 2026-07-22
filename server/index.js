@@ -15,12 +15,18 @@ if (!process.env.AUTH_JWT_SECRET) {
 }
 
 const { app } = await import('./app.js')
-const { migrate } = await import('./lib/db.js')
+const { migrate, withDbRetry } = await import('./lib/db.js')
 
 const DATA_DIR = path.join(__dirname, 'data')
 const port = process.env.API_PORT ? Number(process.env.API_PORT) : 4489
 
-await migrate()
+// migrate() runs a dozen+ raw DDL statements outside the store layer's retry
+// wrapper — one Neon connection blip here used to take the whole process
+// down at startup (unhandled top-level rejection) instead of just failing a
+// request. Retrying the whole thing is safe: every statement is IF NOT
+// EXISTS / ADD COLUMN IF NOT EXISTS, so re-running it from scratch is a no-op
+// past the first successful run.
+await withDbRetry(migrate)()
 
 // Local fallback: serve generated images + uploads from disk so <img src> works
 // without Vercel Blob. Unused on Vercel (Blob serves those directly).

@@ -4,6 +4,7 @@ import { waitUntil } from '@vercel/functions'
 import { getProject, saveProject, saveImage, readImage } from '../lib/store.js'
 import { analyzeImage } from '../lib/vision.js'
 import { generateItemImage, buildItemPrompt } from '../lib/itemImage.js'
+import { imaginerErrorMessage } from '../lib/imaginer.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = Router()
@@ -34,7 +35,8 @@ async function runItemImageBatch(projectId, userId, generationId, itemIds) {
   const parentImageBuffer = await readImage(generation.imageId)
 
   const results = []
-  for (let i = 0; i < itemIds.length; i += ITEM_IMAGE_CONCURRENCY) {
+  let stopEarly = null
+  for (let i = 0; i < itemIds.length && !stopEarly; i += ITEM_IMAGE_CONCURRENCY) {
     const wave = itemIds.slice(i, i + ITEM_IMAGE_CONCURRENCY)
     const waveResults = await Promise.all(
       wave.map(async (itemId) => {
@@ -46,11 +48,19 @@ async function runItemImageBatch(projectId, userId, generationId, itemIds) {
           return { itemId, status: 'done', imageId, error: null }
         } catch (err) {
           console.error('[analyze] item-image batch failed:', err.code, err.message)
-          return { itemId, status: 'error', imageId: null, error: 'Gambar item ini belum bisa dibuat. Coba lagi, ya.' }
+          return { itemId, status: 'error', imageId: null, error: imaginerErrorMessage(err), code: err.code }
         }
       }),
     )
     results.push(...waveResults)
+    // A whole-account problem (no credit, no key) won't clear up mid-batch —
+    // stop burning waves on it and mark the rest the same way instead of
+    // retrying each one into the same wall.
+    stopEarly = waveResults.find((r) => r?.code === 'insufficient_balance' || r?.code === 'config')
+  }
+  if (stopEarly) {
+    const remaining = itemIds.slice(results.length)
+    results.push(...remaining.map((itemId) => ({ itemId, status: 'error', imageId: null, error: stopEarly.error })))
   }
 
   const latest = await getProject(projectId, userId)

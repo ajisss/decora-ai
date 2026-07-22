@@ -10,6 +10,18 @@ function apiKey() {
   return key
 }
 
+// Imaginer returns these as a generic non-2xx with a message, not a
+// dedicated status code/error code — the only way to tell "your account has
+// no credit" apart from "the service hiccuped" is to read the message text.
+// Observed directly: "Insufficient balance: IDR deduction failed (database
+// error)" and "Too Many Requests (Concurrency limit exceeded)".
+function classifyError(message) {
+  const m = (message ?? '').toLowerCase()
+  if (m.includes('insufficient balance') || m.includes('deduction failed')) return 'insufficient_balance'
+  if (m.includes('too many requests') || m.includes('concurrency limit')) return 'rate_limited'
+  return 'upstream'
+}
+
 // Imaginer's API occasionally rejects a perfectly valid request with a
 // transient-looking error (observed directly: "Internal server error", and a
 // bogus "Model/quality cost not configured for gpt-image-2 (medium)" that
@@ -23,6 +35,10 @@ async function withRetry(fn, { attempts = 3, delayMs = 2000 } = {}) {
       return await fn()
     } catch (err) {
       lastErr = err
+      // Config (missing key) and insufficient balance are never going to
+      // resolve themselves a few seconds later — retrying just delays the
+      // inevitable and spams the log.
+      if (err.code === 'config' || err.code === 'insufficient_balance') throw err
       if (i < attempts - 1) {
         console.log(`[imaginer] request failed (attempt ${i + 1}/${attempts}): ${err.message} — retrying`)
         await new Promise((resolve) => setTimeout(resolve, delayMs))
@@ -45,7 +61,8 @@ async function uploadReference(buffer, mime = 'image/png') {
     })
     const body = await res.json().catch(() => null)
     if (!res.ok || !body?.image_id) {
-      throw Object.assign(new Error(body?.message ?? `Imaginer upload failed (${res.status})`), { code: 'upstream' })
+      const message = body?.message ?? `Imaginer upload failed (${res.status})`
+      throw Object.assign(new Error(message), { code: classifyError(message) })
     }
     return body.image_id
   })
@@ -70,7 +87,8 @@ async function createGeneration({ prompt, refImageIds, ratio = '3:2', quality = 
     })
     const body = await res.json().catch(() => null)
     if (!res.ok || !body?.generation_id) {
-      throw Object.assign(new Error(body?.error ?? `Imaginer request failed (${res.status})`), { code: 'upstream' })
+      const message = body?.error ?? `Imaginer request failed (${res.status})`
+      throw Object.assign(new Error(message), { code: classifyError(message) })
     }
     return body.generation_id
   })
@@ -115,7 +133,15 @@ async function pollGeneration(generationId, { intervalMs = 4000, timeoutMs = 600
       return url
     }
     if (status === 'failed' || status === 'cancelled') {
-      throw Object.assign(new Error(body.error || 'Generation failed'), { code: 'generation_failed' })
+      // A terminal failure's message isn't necessarily a content rejection —
+      // observed directly: a generic "Proses gagal. Silakan coba lagi nanti."
+      // with no rejection reason at all, on an account balance issue. Run it
+      // through the same classifier so a balance/rate-limit message that
+      // surfaces at this stage (instead of at submit time) is still labeled
+      // correctly instead of being lumped in with genuine content rejections.
+      const message = body.error || 'Generation failed'
+      const classified = classifyError(message)
+      throw Object.assign(new Error(message), { code: classified === 'upstream' ? 'generation_failed' : classified })
     }
     await new Promise((resolve) => setTimeout(resolve, intervalMs))
   }
@@ -144,4 +170,25 @@ export async function editImage(prompt, referenceBuffer, referenceMime = 'image/
   const generationId = await createGeneration({ prompt, refImageIds: [imageId], ...opts })
   const url = await pollGeneration(generationId)
   return downloadImage(url)
+}
+
+// Shared by every route that surfaces a generateImage/editImage failure to
+// the user (generate.js, analyze.js's item-image batch, itemImage.js) — one
+// place to keep the wording (and the err.code -> message mapping) consistent.
+export function imaginerErrorMessage(err) {
+  switch (err.code) {
+    case 'config':
+      return 'Layanan gambar belum dikonfigurasi. Cek API key di server.'
+    case 'insufficient_balance':
+      return 'Saldo layanan gambar (Imaginer) sudah habis. Admin perlu top up dulu sebelum bisa generate lagi.'
+    case 'rate_limited':
+      return 'Server gambar sedang sibuk (terlalu banyak permintaan bersamaan). Coba lagi dalam beberapa saat.'
+    case 'generation_failed':
+      // Imaginer's own message here is usually specific enough to act on
+      // (a content rejection reason, or its own generic retry hint) — show
+      // it directly instead of guessing why it failed.
+      return err.message?.trim() ? `${err.message.trim()} (dari layanan gambar)` : 'Permintaan ini ditolak layanan gambar. Coba lagi, ya.'
+    default:
+      return 'Layanan desain tidak bisa dihubungi. Promptmu aman — coba lagi.'
+  }
 }
