@@ -555,6 +555,7 @@ export default function StudioPage() {
           onCompare={() => (compareIds.length >= 2 ? setCompareOpen(true) : showToast(tc.barHint))}
           compareCount={compareIds.length}
           referenceVersion={referenceEntry}
+          onRetryVersion={handleRetry}
           exported={exportedOnce}
           analyzing={Boolean(activeVersion) && !activeVersion.analysis}
           copilotProps={{

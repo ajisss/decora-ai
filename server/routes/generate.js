@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import { waitUntil } from '@vercel/functions'
 import { getProject, saveProject, saveImage, readImage, readUpload } from '../lib/store.js'
 import { generateImage, editImage, imaginerErrorMessage } from '../lib/imaginer.js'
+import { randomComposition } from '../lib/promptTemplate.js'
 import { mockGenerateImage, MOCK_AI_ENABLED } from '../lib/mockAi.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 
@@ -119,12 +120,19 @@ router.post('/', async (req, res) => {
   // Respond immediately with the pending entry; the client polls for the result.
   res.json({ generation, project })
 
+  // The composition nudge is appended only for the actual image call, not
+  // stored on the generation — otherwise every retry/reference-reuse of this
+  // entry would replay the same locked-in angle instead of getting a fresh
+  // one, and the prompt shown to the user would carry internal instructions
+  // that have nothing to do with what they asked for.
+  const imagePrompt = `${effectivePrompt} ${randomComposition()}`
+
   // The write-back inside runGenerationInBackground happens outside its own
   // try/catch, and waitUntil() does not attach a rejection handler — so a
   // store failure there became an unhandled rejection, which under Node's
   // default --unhandled-rejections=throw takes the whole API process down.
   waitUntil(
-    runGenerationInBackground(projectId, req.user.id, generation.id, effectivePrompt, reference).catch((err) =>
+    runGenerationInBackground(projectId, req.user.id, generation.id, imagePrompt, reference).catch((err) =>
       console.error('[generate] background job failed:', err),
     ),
   )

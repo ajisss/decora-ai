@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { StepIcon } from '../icons.jsx'
 import CanvasToolbar from './CanvasToolbar.jsx'
+import Spinner from './Spinner.jsx'
 import useZoomPan from './useZoomPan.js'
 import { content } from '../../content.js'
 
@@ -8,6 +9,23 @@ const t = content.app.studio
 
 function clamp(v, min, max) {
   return Math.min(Math.max(v, min), max)
+}
+
+function useElapsed(active) {
+  const [seconds, setSeconds] = useState(0)
+  useEffect(() => {
+    if (!active) return
+    setSeconds(0)
+    const id = setInterval(() => setSeconds((s) => s + 1), 1000)
+    return () => clearInterval(id)
+  }, [active])
+  return seconds
+}
+
+function formatElapsed(s) {
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return `${m}:${String(sec).padStart(2, '0')}`
 }
 
 // The interactive stage: the design image under a zoom/pan transform, with
@@ -28,9 +46,11 @@ export default function CanvasStage({
   referenceVersion,
   versionOf,
   onSelectVersion,
+  onRetry,
   filmstrip,
 }) {
   const zoom = useZoomPan()
+  const elapsed = useElapsed(version?.status === 'pending')
   const items = version?.analysis?.items ?? []
   const pinnable = items.filter((i) => i.position)
   const visiblePins = showPins ? pinnable : []
@@ -195,9 +215,23 @@ export default function CanvasStage({
           >
             {version.imageId ? (
               <img src={version.imageId} alt={versionLabel} className="h-full w-full object-contain" draggable={false} />
+            ) : version.status === 'pending' ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 rounded-xl2 bg-paper-soft text-sm text-ink-muted">
+                <Spinner className="h-6 w-6 text-clay" />
+                <p>
+                  {t.generatingElapsed} {formatElapsed(elapsed)}
+                </p>
+                {elapsed > 30 && <p className="text-xs">{t.patience}</p>}
+              </div>
             ) : (
-              <div className="flex h-full items-center justify-center rounded-xl2 bg-paper-soft text-sm text-ink-muted">
-                {version.status === 'pending' ? t.generatingElapsed : version.error || t.emptyErrorTitle}
+              <div className="flex h-full flex-col items-center justify-center gap-3 rounded-xl2 bg-paper-soft p-6 text-center text-sm">
+                <StepIcon name="warningTriangle" className="h-5 w-5 text-danger" />
+                <p className="max-w-sm text-danger">{version.error || t.emptyErrorTitle}</p>
+                {onRetry && version.errorCode !== 'cap' && (
+                  <button type="button" onClick={() => onRetry(version)} className="btn-ghost !px-3 !py-1.5 text-xs">
+                    {t.retry}
+                  </button>
+                )}
               </div>
             )}
 

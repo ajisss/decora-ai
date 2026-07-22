@@ -22,6 +22,7 @@ export default function DesignCanvas({
   onCompare,
   compareCount,
   referenceVersion,
+  onRetryVersion,
   analyzing,
   exported,
   copilotProps,
@@ -47,6 +48,7 @@ export default function DesignCanvas({
         referenceVersion={referenceVersion}
         versionOf={versionOf}
         onSelectVersion={onSelectVersion}
+        onRetry={onRetryVersion}
         filmstrip={
           <VersionFilmstrip
             generations={generations}

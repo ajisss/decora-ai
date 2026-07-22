@@ -36,6 +36,23 @@ function budgetLabel(budgetTier) {
   return lookup(BUDGET_LABELS, budgetTier)
 }
 
+// Appended to every generation request (not just compilePrompt's one-time
+// output) — the model's single most common "wedding decor" association is a
+// centered aisle mirrored by chair rows on both sides, so without an explicit
+// nudge every version comes back with that same layout. Picking one of these
+// per request breaks the pattern instead of only varying it at project setup.
+const COMPOSITIONS = [
+  'Vary the layout: consider a single-side seating arrangement, banquet-style round tables, lounge clusters, or a curved/off-center aisle instead of a straight aisle mirrored by chairs on both sides.',
+  'Shoot from a three-quarter angle rather than a straight-on, perfectly symmetrical view.',
+  'Frame it as an asymmetrical wide shot, camera positioned slightly to one side rather than dead-center.',
+  'Use a high, slightly elevated angle looking down over the space rather than a centered eye-level shot.',
+  'Compose it as if walking into the space from one side — an off-center, eye-level framing.',
+]
+
+export function randomComposition() {
+  return COMPOSITIONS[Math.floor(Math.random() * COMPOSITIONS.length)]
+}
+
 // Pure function: wizard setup -> natural-language image generation prompt.
 // Deterministic string assembly, not an LLM call (see plan.md Design Principles).
 export function compilePrompt(setup) {

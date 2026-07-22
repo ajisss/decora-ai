@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // Single owner of "what is the user looking at" in the Design Workspace.
 //
@@ -21,6 +21,21 @@ export default function useWorkspaceSelection({ generations }) {
   useEffect(() => {
     if (!activeVersionId && latestDoneId) setActiveVersionId(latestDoneId)
   }, [activeVersionId, latestDoneId])
+
+  // Jump to a freshly started generation so its pending state (spinner,
+  // skeleton, elapsed timer) is visible on the canvas — otherwise the stage
+  // just keeps showing whatever was selected before, with nothing on screen
+  // to indicate a new design is being built. Keyed off the newest entry's id
+  // (generations is newest-first) rather than status, so it fires once per
+  // new arrival instead of re-stealing selection on every render.
+  const newestId = generations[0]?.id ?? null
+  const prevNewestId = useRef(newestId)
+  useEffect(() => {
+    if (newestId !== prevNewestId.current) {
+      if (generations[0]?.status === 'pending') setActiveVersionId(newestId)
+      prevNewestId.current = newestId
+    }
+  }, [newestId, generations])
 
   // Re-analysis mints fresh item ids, so a held selection can point at an item
   // that no longer exists. Without this the Inspector silently drops back to
