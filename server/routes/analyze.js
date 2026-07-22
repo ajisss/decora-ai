@@ -9,41 +9,62 @@ import { requireAuth } from '../middleware/requireAuth.js'
 const router = Router()
 router.use(requireAuth)
 
-// Runs after analyze responds: generates every item's breakdown photo, one at
-// a time (a batch of parallel image-to-image calls against the same account
-// showed a much higher transient failure rate — see server/lib/imaginer.js's
-// retry comments). A failed item doesn't stop the rest of the batch; the
-// existing per-item retry button (server/routes/itemImage.js) covers it.
+// Runs after analyze responds: generates every item's breakdown photo in
+// waves of 3 concurrent requests. Vercel's function has a hard 300s ceiling
+// (vercel.json) — 7-9 items done fully sequentially (~40-60s each) routinely
+// blew past that and left the tail of the batch stuck 'pending' forever.
+// Full parallel was tried and measured worse: Imaginer enforces a ~3-request
+// concurrency cap on this account, so firing everything at once produced a
+// wave of "Too Many Requests (Concurrency limit exceeded)" that even the
+// per-call retry (server/lib/imaginer.js's withRetry) couldn't fully absorb
+// — half the items came back 'error' in testing. 3-at-a-time keeps every
+// individual request inside Imaginer's real capacity while still finishing
+// a 9-item batch in ~3 waves (well under the 300s ceiling).
+//
+// Writes happen once, after every item across all waves settles — not one
+// save per item — because saveProject rewrites the whole generations set;
+// concurrent per-item saves would race and clobber each other's results.
+const ITEM_IMAGE_CONCURRENCY = 3
+
 async function runItemImageBatch(projectId, userId, generationId, itemIds) {
-  for (const itemId of itemIds) {
-    const project = await getProject(projectId, userId)
-    if (!project) return
-    const generation = project.generations.find((g) => g.id === generationId)
-    const item = generation?.analysis?.items?.find((i) => i.id === itemId)
-    if (!item || item.itemImage?.status !== 'pending') continue // cancelled or removed mid-batch
+  const project = await getProject(projectId, userId)
+  if (!project) return
+  const generation = project.generations.find((g) => g.id === generationId)
+  if (!generation) return
+  const parentImageBuffer = await readImage(generation.imageId)
 
-    let status = 'done'
-    let imageId = null
-    let error = null
-    try {
-      const parentImageBuffer = await readImage(generation.imageId)
-      const buffer = await generateItemImage({ prompt: item.itemImage.prompt, category: item.category, parentImageBuffer })
-      imageId = await saveImage(`${generationId}-item-${itemId}-${nanoid()}`, buffer)
-    } catch (err) {
-      console.error('[analyze] item-image batch failed:', err.code, err.message)
-      status = 'error'
-      error = 'Gambar item ini belum bisa dibuat. Coba lagi, ya.'
-    }
-
-    const latest = await getProject(projectId, userId)
-    if (!latest) return
-    const latestGeneration = latest.generations.find((g) => g.id === generationId)
-    const latestItem = latestGeneration?.analysis?.items?.find((i) => i.id === itemId)
-    if (!latestItem || latestItem.itemImage?.status === 'cancelled') continue
-    latestItem.itemImage = { status, imageId, prompt: item.itemImage.prompt, error }
-    latest.updatedAt = new Date().toISOString()
-    await saveProject(latest, userId)
+  const results = []
+  for (let i = 0; i < itemIds.length; i += ITEM_IMAGE_CONCURRENCY) {
+    const wave = itemIds.slice(i, i + ITEM_IMAGE_CONCURRENCY)
+    const waveResults = await Promise.all(
+      wave.map(async (itemId) => {
+        const item = generation.analysis?.items?.find((i) => i.id === itemId)
+        if (!item) return null
+        try {
+          const buffer = await generateItemImage({ prompt: item.itemImage.prompt, category: item.category, parentImageBuffer })
+          const imageId = await saveImage(`${generationId}-item-${itemId}-${nanoid()}`, buffer)
+          return { itemId, status: 'done', imageId, error: null }
+        } catch (err) {
+          console.error('[analyze] item-image batch failed:', err.code, err.message)
+          return { itemId, status: 'error', imageId: null, error: 'Gambar item ini belum bisa dibuat. Coba lagi, ya.' }
+        }
+      }),
+    )
+    results.push(...waveResults)
   }
+
+  const latest = await getProject(projectId, userId)
+  if (!latest) return
+  const latestGeneration = latest.generations.find((g) => g.id === generationId)
+  if (!latestGeneration) return
+  for (const result of results) {
+    if (!result) continue
+    const latestItem = latestGeneration.analysis?.items?.find((i) => i.id === result.itemId)
+    if (!latestItem || latestItem.itemImage?.status === 'cancelled') continue
+    latestItem.itemImage = { status: result.status, imageId: result.imageId, prompt: latestItem.itemImage?.prompt, error: result.error }
+  }
+  latest.updatedAt = new Date().toISOString()
+  await saveProject(latest, userId)
 }
 
 router.post('/', async (req, res) => {
