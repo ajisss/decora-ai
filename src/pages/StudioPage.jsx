@@ -174,6 +174,28 @@ export default function StudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.generations])
 
+  // A generation's own poll loop (runGeneration in ProjectsContext) silently
+  // swallows a flaky fetch and just waits for its next 4s tick — usually
+  // fine, but on a bad connection that can stretch the "still pending" wait
+  // well past when the server actually finished. Coming back to the tab is
+  // the moment a user actually looks at the screen again, so force one fresh
+  // fetch right then instead of leaving it to whenever the poll happens to
+  // land — this is exactly what a manual refresh was doing.
+  useEffect(() => {
+    if (!project) return
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      if (project.generations.some((g) => g.status === 'pending')) refreshProject(project.id)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.id, project?.generations])
+
   useEffect(() => {
     if (!lightbox) return
     const onKey = (e) => {
