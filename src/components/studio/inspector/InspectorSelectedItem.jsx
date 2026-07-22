@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { StepIcon } from '../../icons.jsx'
 import NameDialog from '../../ui/NameDialog.jsx'
 import ConfirmDialog from '../../ui/ConfirmDialog.jsx'
+import Spinner from '../Spinner.jsx'
 import useAnalysisController from '../analysis/useAnalysisController.js'
 import { useToast } from '../../ui/Toast.jsx'
 import { api } from '../../../api/client.js'
@@ -81,6 +82,10 @@ export default function InspectorSelectedItem({ projectId, version, item, onClea
       <div className="flex items-start gap-2.5">
         {item.itemImage?.imageId ? (
           <img src={item.itemImage.imageId} alt={item.name} className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+        ) : item.itemImage?.status === 'pending' ? (
+          <div className="flex h-12 w-12 shrink-0 animate-pulse items-center justify-center rounded-lg bg-paper-soft">
+            <Spinner className="h-4 w-4 text-clay" />
+          </div>
         ) : (
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-paper-soft">
             <StepIcon name="image" className="h-4 w-4 text-ink-muted" />
@@ -88,7 +93,11 @@ export default function InspectorSelectedItem({ projectId, version, item, onClea
         )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-ink">{item.name}</p>
-          {metaParts.length > 0 && <p className="truncate text-xs text-ink-muted">{metaParts.join(' • ')}</p>}
+          {item.itemImage?.status === 'pending' ? (
+            <p className="truncate text-xs font-medium text-clay-deep">{ta.generatingItemImage}</p>
+          ) : (
+            metaParts.length > 0 && <p className="truncate text-xs text-ink-muted">{metaParts.join(' • ')}</p>
+          )}
         </div>
         {typeof item.confidence === 'number' && (
           <span className="flex shrink-0 flex-col items-end leading-tight">
