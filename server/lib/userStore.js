@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { sql, USE_LOCAL_DB } from './db.js'
+import { sql, USE_LOCAL_DB, withDbRetry } from './db.js'
 import * as local from './localStore.js'
 
 const L = USE_LOCAL_DB ? local : null
@@ -60,8 +60,8 @@ async function cloudUpdateUser(id, patch) {
   return toUser(rows[0])
 }
 
-export const createUser = L ? L.createUser : cloudCreateUser
-export const findUserByEmail = L ? L.findUserByEmail : cloudFindUserByEmail
-export const findUserByGoogleId = L ? L.findUserByGoogleId : cloudFindUserByGoogleId
-export const findUserById = L ? L.findUserById : cloudFindUserById
-export const updateUser = L ? L.updateUser : cloudUpdateUser
+export const createUser = L ? L.createUser : withDbRetry(cloudCreateUser)
+export const findUserByEmail = L ? L.findUserByEmail : withDbRetry(cloudFindUserByEmail)
+export const findUserByGoogleId = L ? L.findUserByGoogleId : withDbRetry(cloudFindUserByGoogleId)
+export const findUserById = L ? L.findUserById : withDbRetry(cloudFindUserById)
+export const updateUser = L ? L.updateUser : withDbRetry(cloudUpdateUser)

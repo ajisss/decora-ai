@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { put } from '@vercel/blob'
-import { sql, USE_LOCAL_DB } from './db.js'
+import { sql, USE_LOCAL_DB, withDbRetry } from './db.js'
 import * as local from './localStore.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -152,10 +152,10 @@ async function cloudReadUpload(uploadUrl) {
   return { buffer, mime: EXT_MIME[ext] ?? 'image/png' }
 }
 
-export const listProjects = L ? L.listProjects : cloudListProjects
-export const getProject = L ? L.getProject : cloudGetProject
-export const saveProject = L ? L.saveProject : cloudSaveProject
-export const deleteProject = L ? L.deleteProject : cloudDeleteProject
+export const listProjects = L ? L.listProjects : withDbRetry(cloudListProjects)
+export const getProject = L ? L.getProject : withDbRetry(cloudGetProject)
+export const saveProject = L ? L.saveProject : withDbRetry(cloudSaveProject)
+export const deleteProject = L ? L.deleteProject : withDbRetry(cloudDeleteProject)
 export const saveImage = L ? L.saveImage : cloudSaveImage
 export const readImage = L ? L.readImage : cloudReadImage
 export const saveUpload = L ? L.saveUpload : cloudSaveUpload
