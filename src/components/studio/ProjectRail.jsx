@@ -1,5 +1,4 @@
 import { StepIcon } from '../icons.jsx'
-import VersionExplorer from './VersionExplorer.jsx'
 import { content } from '../../content.js'
 
 const t = content.app.studio
@@ -10,19 +9,11 @@ const NAV_SECTIONS = [
   { value: 'checklist', icon: 'checklist', label: t.navChecklist },
 ]
 
-// Level 2 (Project context) + Level 3 (Version Explorer) stacked in one rail,
-// matching the mockup's combined left column. `navSection` picks which of
-// the 3 project-context panes the Inspector/main area shows; version
-// selection is separate (drives Canvas/Inspector once built).
-export default function ProjectRail({
-  project,
-  onEditSetup,
-  navSection,
-  onNavSectionChange,
-  versionExplorerProps,
-  onCompare,
-  compareCount = 0,
-}) {
+// Level 2 (Project context) rail. `navSection` picks which of the 3
+// project-context panes the Inspector/main area shows. Version switching
+// lives in the canvas filmstrip (VersionFilmstrip) and Inspector's rename
+// action — this rail no longer has its own version list.
+export default function ProjectRail({ project, onEditSetup, navSection, onNavSectionChange }) {
   return (
     <>
       <div className="flex items-start justify-between gap-2 p-3">
@@ -59,24 +50,6 @@ export default function ProjectRail({
           </button>
         ))}
       </nav>
-
-      <div className="border-t border-paper-line" />
-
-      <VersionExplorer {...versionExplorerProps} />
-
-      <div className="shrink-0 border-t border-paper-line p-2">
-        <button
-          type="button"
-          onClick={onCompare}
-          disabled={compareCount < 2}
-          title={compareCount < 2 ? content.app.compare.barHint : undefined}
-          className="btn-ghost w-full !py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <StepIcon name="compare" className="h-3.5 w-3.5" />
-          {t.compareVersions}
-          {compareCount > 0 && <span className="text-clay-deep">({compareCount}/2)</span>}
-        </button>
-      </div>
     </>
   )
 }

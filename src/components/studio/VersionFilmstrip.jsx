@@ -64,7 +64,11 @@ export default function VersionFilmstrip({ generations, activeVersionId, onSelec
         <ArrowButton icon="chevronRight" flip label={t.filmstripPrev} onClick={() => scrollBy(-240)} />
       )}
 
-      <div ref={scrollRef} className="flex flex-1 items-center gap-2 overflow-x-auto scroll-smooth">
+      {/* min-w-0 is load-bearing: a flex item's default min-width is auto (its
+          content's natural width), so without it this row refuses to shrink
+          below "every thumbnail side by side" and pushes the whole filmstrip
+          past the canvas edge instead of actually scrolling. */}
+      <div ref={scrollRef} className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scroll-smooth">
         {generations.map((g) => (
           <button
             key={g.id}

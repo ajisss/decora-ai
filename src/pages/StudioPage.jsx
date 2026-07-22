@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { nanoid } from 'nanoid'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import AppShell from '../components/shell/AppShell.jsx'
 import { StepIcon } from '../components/icons.jsx'
@@ -45,7 +44,6 @@ export default function StudioPage() {
   // is open), so panels must always look the current one up live by id.
   const [lightboxId, setLightboxId] = useState(null)
   const [exportTargetId, setExportTargetId] = useState(null)
-  const [deleteVersionTarget, setDeleteVersionTarget] = useState(null)
   // Which off-canvas panel is showing below its docked breakpoint.
   const [railOpen, setRailOpen] = useState(false)
   const [inspectorOpen, setInspectorOpen] = useState(false)
@@ -409,37 +407,6 @@ export default function StudioPage() {
       return next
     })
 
-  // Version Explorer: duplicate clones a done generation's image/analysis
-  // into a brand-new entry (fresh id, no favorite/name carried over) — no
-  // new endpoint, this rides the same whole-project PUT every other edit
-  // here already uses.
-  const handleDuplicateVersion = (entry) => {
-    const copy = {
-      ...entry,
-      id: nanoid(),
-      createdAt: new Date().toISOString(),
-      favorite: false,
-      favoriteName: null,
-    }
-    updateProject(project.id, (p) => ({ ...p, generations: [copy, ...p.generations] }))
-    showToast(t.versionDuplicated)
-  }
-
-  // Confirmed via ConfirmDialog (deleteVersionTarget) below — removes the
-  // entry from the generations array; the backend already replaces the whole
-  // array on save, so no delete-single-generation endpoint is needed.
-  const confirmDeleteVersion = () => {
-    if (!deleteVersionTarget) return
-    updateProject(project.id, (p) => ({
-      ...p,
-      generations: p.generations.filter((g) => g.id !== deleteVersionTarget.id),
-    }))
-    if (activeVersionId === deleteVersionTarget.id) selectVersion(null)
-    if (referenceEntry?.id === deleteVersionTarget.id) setReferenceEntry(null)
-    showToast(t.versionDeleted)
-    setDeleteVersionTarget(null)
-  }
-
   // Sorted oldest-first regardless of click order, so the slider always reads
   // left = before (older), right = after (newer) — not "first clicked".
   const compareEntries = compareIds
@@ -463,24 +430,6 @@ export default function StudioPage() {
           onNavSectionChange={(section) => {
             setNavSection(section)
             setRailOpen(false)
-          }}
-          onCompare={() => setCompareOpen(true)}
-          compareCount={compareIds.length}
-          versionExplorerProps={{
-            generations,
-            selectedVersionId: activeVersionId,
-            onSelect: (id) => {
-              selectVersion(id)
-              setRailOpen(false)
-            },
-            versionOf,
-            onRename: (entry) => setBookmarkTarget(entry),
-            onDuplicate: handleDuplicateVersion,
-            onDelete: (entry) => setDeleteVersionTarget(entry),
-            onToggleFavorite: handleToggleFavorite,
-            onToggleCompare: handleToggleCompare,
-            compareIds,
-            onNewVersion: () => composerRef.current?.focus(),
           }}
         />
       }
@@ -779,15 +728,6 @@ export default function StudioPage() {
         title={t.confirmGenerateTitle}
         body={t.confirmGenerateBody}
         confirmLabel={t.confirmGenerateCta}
-      />
-
-      <ConfirmDialog
-        open={Boolean(deleteVersionTarget)}
-        onClose={() => setDeleteVersionTarget(null)}
-        onConfirm={confirmDeleteVersion}
-        title={t.deleteVersionConfirmTitle}
-        body={t.deleteVersionConfirmBody}
-        confirmLabel={t.deleteVersionCta}
       />
 
       <NameDialog
