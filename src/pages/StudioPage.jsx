@@ -70,13 +70,6 @@ export default function StudioPage() {
   const prevStatuses = useRef(new Map())
   const lightboxRef = useRef(null)
   const compareRef = useRef(null)
-  // Generations already pending when this tab opened (e.g. a refresh mid-generation,
-  // wireflow §5.3) — these outlived their originating fetch and need recovery polling,
-  // as opposed to ones this tab itself just started via runGeneration.
-  const [orphanedPendingIds] = useState(
-    () => new Set((project?.generations ?? []).filter((g) => g.status === 'pending').map((g) => g.id)),
-  )
-
   const generations = project?.generations ?? []
   const messages = project?.messages ?? []
   const isPending = generations.some((g) => g.status === 'pending')
@@ -161,10 +154,16 @@ export default function StudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 
+  // Recovery polling for ANY pending generation — one already pending when
+  // this tab opened (a refresh mid-generation, wireflow §5.3), or one this
+  // tab itself just started. Runs independently of runGeneration's own poll
+  // loop in ProjectsContext, which silently swallows a flaky fetch and just
+  // waits for its next 4s tick — on a bad connection that loop can stretch
+  // far past when the server actually finished, with nothing else picking up
+  // the slack while the tab stays in the foreground the whole time (the
+  // window-focus refetch below only fires on a genuine focus change).
   useEffect(() => {
-    if (!project || orphanedPendingIds.size === 0) return
-    const stillPending = () =>
-      project.generations.some((g) => orphanedPendingIds.has(g.id) && g.status === 'pending')
+    const stillPending = () => project?.generations.some((g) => g.status === 'pending')
     if (!stillPending()) return
     const t = setInterval(() => {
       if (!stillPending()) return clearInterval(t)
