@@ -337,32 +337,6 @@ export function ProjectsProvider({ children }) {
           ...p,
           generations: p.generations.map((g) => (g.id === generationId ? { ...g, analysis } : g)),
         }))
-
-        // The server kicks off every item's breakdown photo in the
-        // background (one at a time) and returns immediately with all of
-        // them 'pending' — poll until none are, mirroring runItemImage's
-        // single-item poll but watching the whole batch at once.
-        const deadline = Date.now() + 15 * 60 * 1000
-        const poll = async () => {
-          if (Date.now() > deadline) return
-          try {
-            const { project: latest } = await api.getProject(projectId)
-            const gen = latest?.generations.find((g) => g.id === generationId)
-            if (!gen) return
-            setById((prev) => {
-              const next = { ...prev, [projectId]: latest }
-              writeLocal(next)
-              return next
-            })
-            const stillPending = gen.analysis?.items?.some((i) => i.itemImage?.status === 'pending')
-            if (!stillPending) return
-          } catch {
-            /* offline — retry on the next tick */
-          }
-          setTimeout(poll, 4000)
-        }
-        setTimeout(poll, 4000)
-
         return { ok: true }
       } catch (err) {
         return { ok: false, error: err }
